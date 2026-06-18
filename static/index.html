@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sistema de Horarios Escolares</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div>
+        <p class="eyebrow">Gestao escolar</p>
+        <h1>Horario Escolar</h1>
+      </div>
+      <nav>
+        <button class="active" data-view="dashboard">Painel</button>
+        <button data-view="cadastros">Cadastros</button>
+        <button data-view="matriz">Matriz</button>
+        <button data-view="disponibilidade">Disponibilidade</button>
+        <button data-view="grade">Grade</button>
+        <button data-view="relatorios">Relatorios</button>
+      </nav>
+      <div class="status-box">
+        <span>Qualidade</span>
+        <strong id="score">0</strong>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="schoolYear">Ano letivo</p>
+          <h2 id="schoolName">Carregando...</h2>
+        </div>
+        <div class="actions">
+          <button id="generateBtn" class="primary">Gerar horario</button>
+          <button id="saveBtn">Salvar</button>
+          <button id="resetBtn">Restaurar exemplo</button>
+          <button id="printBtn">Imprimir PDF</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active"></section>
+      <section id="cadastros" class="view"></section>
+      <section id="matriz" class="view"></section>
+      <section id="disponibilidade" class="view"></section>
+      <section id="grade" class="view"></section>
+      <section id="relatorios" class="view"></section>
+    </main>
+
+    <template id="modalTemplate">
+      <div class="modal-backdrop">
+        <form class="modal">
+          <div class="modal-head">
+            <h3></h3>
+            <button type="button" class="ghost close">Fechar</button>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-actions">
+            <button type="submit" class="primary">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </template>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
