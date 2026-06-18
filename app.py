@@ -147,6 +147,19 @@ def periods_for_class(db: dict, school_class: dict) -> list[str]:
     return shift.get("periods", DEFAULT_PERIODS) if shift else DEFAULT_PERIODS
 
 
+def all_periods(db: dict) -> list[str]:
+    periods = []
+    for shift in db["school"].get("shifts", []):
+        for period in shift.get("periods", []):
+            if period not in periods:
+                periods.append(period)
+    return periods or DEFAULT_PERIODS
+
+
+def curriculum_by_id(db: dict) -> dict[str, dict]:
+    return by_id(db.get("curriculum", []))
+
+
 def lesson_key(lesson: dict) -> tuple[str, str]:
     return lesson["day"], lesson["period"]
 
@@ -165,6 +178,18 @@ def compatible_room(db: dict, room: dict, subject: dict) -> bool:
         return False
     compatible = room.get("compatibleSubjects", [])
     return not compatible or subject["id"] in compatible
+
+
+def lesson_context(db: dict, lesson: dict) -> str:
+    ix = indexes(db)
+    parts = [
+        ix["classes"].get(lesson.get("classId"), {}).get("name", "Turma"),
+        ix["subjects"].get(lesson.get("subjectId"), {}).get("name", "Disciplina"),
+        ix["teachers"].get(lesson.get("teacherId"), {}).get("name", "Professor"),
+        lesson.get("day", "Dia"),
+        lesson.get("period", "Periodo"),
+    ]
+    return " | ".join(parts)
 
 
 def pick_room(db: dict, row: dict, day: str, period: str, lessons: list[dict]) -> str | None:
@@ -192,35 +217,68 @@ def pick_room(db: dict, row: dict, day: str, period: str, lessons: list[dict]) -
 
 def hard_conflicts(db: dict, lesson: dict, lessons: list[dict], ignore_id: str | None = None) -> list[str]:
     ix = indexes(db)
+    rows = curriculum_by_id(db)
     messages = []
     teacher = ix["teachers"].get(lesson.get("teacherId"))
     room = ix["rooms"].get(lesson.get("roomId"))
     subject = ix["subjects"].get(lesson.get("subjectId"))
     school_class = ix["classes"].get(lesson.get("classId"))
+    row = rows.get(lesson.get("curriculumId")) if lesson.get("curriculumId") else None
+
+    for field in ["classId", "subjectId", "teacherId", "roomId", "day", "period"]:
+        if not lesson.get(field):
+            messages.append(f"Campo obrigatorio ausente: {field}.")
+
+    if lesson.get("day") and lesson["day"] not in db["school"].get("days", DAYS):
+        messages.append("Aula fora dos dias letivos da escola.")
+
     if not teacher:
         messages.append("Professor inexistente.")
-    elif not teacher_available(teacher, lesson["day"], lesson["period"]):
+    elif lesson.get("day") and lesson.get("period") and not teacher_available(teacher, lesson["day"], lesson["period"]):
         messages.append("Professor fora da disponibilidade.")
+    elif subject and teacher.get("subjects") and subject["id"] not in teacher.get("subjects", []):
+        messages.append("Professor nao esta habilitado para esta disciplina.")
+
+    if not subject:
+        messages.append("Disciplina inexistente.")
+
     if not school_class:
         messages.append("Turma inexistente.")
-    elif lesson["day"] not in school_class.get("days", DAYS):
-        messages.append("Turma nao tem aula neste dia.")
+    else:
+        if lesson.get("day") and lesson["day"] not in school_class.get("days", DAYS):
+            messages.append("Turma nao tem aula neste dia.")
+        if lesson.get("period") and lesson["period"] not in periods_for_class(db, school_class):
+            messages.append("Periodo fora do turno configurado para a turma.")
+
     if not room:
         messages.append("Sala inexistente.")
-    elif not room_available(room, lesson["day"], lesson["period"]):
+    elif lesson.get("day") and lesson.get("period") and not room_available(room, lesson["day"], lesson["period"]):
         messages.append("Sala indisponivel.")
     elif subject and not compatible_room(db, room, subject):
-        messages.append("Sala incompatível com a disciplina.")
+        messages.append("Sala incompativel com a disciplina.")
+
+    if row:
+        if row.get("classId") != lesson.get("classId"):
+            messages.append("Aula nao corresponde a turma da matriz curricular.")
+        if row.get("subjectId") != lesson.get("subjectId"):
+            messages.append("Aula nao corresponde a disciplina da matriz curricular.")
+        if row.get("teacherId") != lesson.get("teacherId"):
+            messages.append("Aula nao corresponde ao professor da matriz curricular.")
+        if row.get("specialRoomId") and row.get("specialRoomId") != lesson.get("roomId"):
+            messages.append("Disciplina exige a sala especial definida na matriz curricular.")
+
     for item in lessons:
         if ignore_id and item.get("id") == ignore_id:
             continue
+        if not lesson.get("day") or not lesson.get("period") or not item.get("day") or not item.get("period"):
+            continue
         if lesson_key(item) != lesson_key(lesson):
             continue
-        if item["classId"] == lesson["classId"]:
+        if item["classId"] == lesson.get("classId"):
             messages.append("Turma com duas aulas no mesmo horario.")
-        if item["teacherId"] == lesson["teacherId"]:
+        if item["teacherId"] == lesson.get("teacherId"):
             messages.append("Professor em duas turmas no mesmo horario.")
-        if item["roomId"] == lesson["roomId"]:
+        if item["roomId"] == lesson.get("roomId"):
             messages.append("Sala ocupada por mais de uma turma.")
     return sorted(set(messages))
 
@@ -231,7 +289,7 @@ def validate_schedule(db: dict) -> dict:
     conflicts = []
     for lesson in lessons:
         for message in hard_conflicts(db, lesson, lessons, ignore_id=lesson["id"]):
-            conflicts.append({"lessonId": lesson["id"], "severity": "obrigatoria", "message": message})
+            conflicts.append({"lessonId": lesson["id"], "severity": "obrigatoria", "message": message, "context": lesson_context(db, lesson)})
     pendencies = []
     for row in db["curriculum"]:
         expected = int(row.get("weeklyLessons", 0))
@@ -245,9 +303,48 @@ def validate_schedule(db: dict) -> dict:
                     "message": f"{school_class.get('name', 'Turma')} - {subject.get('name', 'Disciplina')}: {actual}/{expected} aulas alocadas.",
                 }
             )
+        if row.get("requiresDouble"):
+            conflicts.extend(double_lesson_conflicts(db, row, lessons))
     warnings = soft_warnings(db, lessons)
     score = max(0, 100 - (len(conflicts) * 15) - (len(pendencies) * 10) - (len(warnings) * 2))
     return {"conflicts": conflicts, "pendencies": pendencies, "warnings": warnings, "score": score}
+
+
+def double_lesson_conflicts(db: dict, row: dict, lessons: list[dict]) -> list[dict]:
+    ix = indexes(db)
+    school_class = ix["classes"].get(row.get("classId"), {})
+    periods = periods_for_class(db, school_class) if school_class else all_periods(db)
+    row_lessons = [item for item in lessons if item.get("curriculumId") == row["id"]]
+    conflicts = []
+    subject = ix["subjects"].get(row.get("subjectId"), {}).get("name", "Disciplina")
+    class_name = ix["classes"].get(row.get("classId"), {}).get("name", "Turma")
+    unpaired_lessons = []
+    for day in db["school"].get("days", DAYS):
+        day_lessons = [item for item in row_lessons if item.get("day") == day and item.get("period") in periods]
+        ordered = sorted(day_lessons, key=lambda item: periods.index(item["period"]))
+        index = 0
+        while index < len(ordered):
+            current = ordered[index]
+            current_pos = periods.index(current["period"])
+            next_lesson = ordered[index + 1] if index + 1 < len(ordered) else None
+            if next_lesson and periods.index(next_lesson["period"]) == current_pos + 1:
+                index += 2
+            else:
+                unpaired_lessons.append(current)
+                index += 1
+    allowed_unpaired = int(row.get("weeklyLessons", 0)) % 2
+    if len(unpaired_lessons) <= allowed_unpaired:
+        return conflicts
+    for lesson in unpaired_lessons:
+        conflicts.append(
+            {
+                "lessonId": lesson.get("id"),
+                "severity": "obrigatoria",
+                "message": "Aula dupla obrigatoria quebrada.",
+                "context": f"{class_name} | {subject} | {lesson.get('day')} | {lesson.get('period')}",
+            }
+        )
+    return conflicts
 
 
 def soft_warnings(db: dict, lessons: list[dict]) -> list[dict]:

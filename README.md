@@ -49,10 +49,11 @@ Fases concluidas:
 
 - Fase 1: Base funcional.
 - Fase 2: Cadastros completos.
+- Fase 3: Regras obrigatorias.
 
 Proxima fase:
 
-- Fase 3: Regras obrigatorias.
+- Fase 4: Gerador automatico robusto.
 
 ## Validacao tecnica
 

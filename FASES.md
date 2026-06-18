@@ -60,7 +60,7 @@ Commit de conclusao: `f96cc1e Concluir fase 2 de cadastros`.
 
 ## Fase 3 - Regras obrigatorias
 
-Status: pendente.
+Status: concluida.
 
 Objetivo: impedir ou sinalizar todos os conflitos obrigatorios do sistema.
 
@@ -83,6 +83,21 @@ Criterios de conclusao:
 - Alteracao manual mostra conflitos imediatamente.
 - Gerador automatico evita regras obrigatorias sempre que houver solucao.
 - Relatorio de pendencias mostra carga horaria incompleta.
+
+Entregas concluidas:
+
+- Validacao obrigatoria reforcada no backend.
+- Conflitos agora incluem contexto da aula: turma, disciplina, professor, dia e periodo.
+- Validacao de professor habilitado para disciplina.
+- Validacao de aula fora dos dias letivos da escola.
+- Validacao de periodo fora do turno configurado para a turma.
+- Validacao de sala especial definida na matriz curricular.
+- Validacao de correspondencia entre aula e matriz curricular.
+- Validacao de aula dupla obrigatoria quebrada.
+- Aulas com conflito aparecem destacadas na grade.
+- Insercao ou edicao manual retorna conflitos imediatamente.
+
+Commit de conclusao: `d7279d7 Concluir fase 3 de regras obrigatorias`.
 
 ## Fase 4 - Gerador automatico robusto
 

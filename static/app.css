@@ -244,8 +244,20 @@ th {
   gap: 4px;
 }
 
+.lesson.conflicted {
+  border-left: 4px solid var(--danger);
+  padding-left: 8px;
+  background: #fff7f7;
+}
+
 .lesson strong {
   color: var(--accent-dark);
+}
+
+.conflict-label {
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .chips {
@@ -282,6 +294,11 @@ th {
   background: #fff7e8;
   padding: 10px 12px;
   border-radius: 4px;
+}
+
+.alert p {
+  margin: 4px 0 0;
+  color: var(--muted);
 }
 
 .alert.danger {

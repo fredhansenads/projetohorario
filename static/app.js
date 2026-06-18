@@ -111,13 +111,13 @@ function renderDashboard() {
     <div class="panel" style="margin-top:16px">
       <h3>Fases de elaboracao</h3>
       <div class="list" style="margin-top:12px">
-        ${phase("1", "Planejamento funcional", "Traduzir regras da escola, usuarios, cadastros e criterios de qualidade em modulos do sistema.")}
-        ${phase("2", "Estrutura web", "Criar servidor, API, tela principal e persistencia local para que o sistema rode sem dependencias.")}
-        ${phase("3", "Cadastros base", "Registrar escola, professores, turmas, disciplinas, salas, turnos e matriz curricular.")}
-        ${phase("4", "Validacoes", "Aplicar regras obrigatorias e alertas preferenciais antes e depois de cada alteracao.")}
-        ${phase("5", "Geracao automatica", "Montar a grade semanal respeitando disponibilidade, salas, aulas duplas e carga horaria.")}
-        ${phase("6", "Ajuste manual", "Permitir mover, inserir e remover aulas com aviso imediato de conflito.")}
-        ${phase("7", "Relatorios", "Exibir horarios por turma, professor e sala, com opcao de impressao em PDF.")}
+        ${phase("1", "Base funcional", "Aplicacao abre, salva dados, restaura exemplo e gera uma grade inicial.")}
+        ${phase("2", "Cadastros completos", "Escola, professores, turmas, disciplinas, salas, turnos e periodos configuraveis.")}
+        ${phase("3", "Regras obrigatorias", "Conflitos obrigatorios validados no backend e exibidos na grade.")}
+        ${phase("4", "Gerador robusto", "Melhorar algoritmo, pontuacao e distribuicao semanal.")}
+        ${phase("5", "Ajuste manual seguro", "Inserir, mover, fixar e trocar aulas com controle de conflito.")}
+        ${phase("6", "Visualizacoes", "Consolidar visoes por turma, professor, sala, geral, conflitos e pendencias.")}
+        ${phase("7", "Relatorios", "PDF, CSV/Excel e relatorios por publico.")}
       </div>
     </div>
   `;
@@ -133,7 +133,13 @@ function phase(number, title, text) {
 
 function alertList(items, type = "") {
   if (!items.length) return `<p class="muted">Nenhum item encontrado.</p>`;
-  return items.map((item) => `<div class="alert ${type}">${item.message}</div>`).join("");
+  return items
+    .map((item) => `<div class="alert ${type}"><strong>${item.message}</strong>${item.context ? `<p>${item.context}</p>` : ""}</div>`)
+    .join("");
+}
+
+function conflictsForLesson(lessonId) {
+  return validation.conflicts.filter((item) => item.lessonId === lessonId);
 }
 
 function renderCadastros() {
@@ -365,10 +371,12 @@ function lessonCard(lesson, context = "class") {
     room: [nameOf("classes", lesson.classId), nameOf("teachers", lesson.teacherId)],
     general: [nameOf("classes", lesson.classId), nameOf("teachers", lesson.teacherId), nameOf("rooms", lesson.roomId)],
   }[context];
+  const conflicts = conflictsForLesson(lesson.id);
   return `
-    <div class="lesson">
+    <div class="lesson ${conflicts.length ? "conflicted" : ""}">
       <strong>${nameOf("subjects", lesson.subjectId)}</strong>
       ${lines.map((line, index) => `<span class="${index > 0 ? "muted" : ""}">${line}</span>`).join("")}
+      ${conflicts.length ? `<span class="conflict-label">${conflicts.length} conflito(s)</span>` : ""}
       <div class="actions no-print"><button data-edit-lesson="${lesson.id}">Editar</button><button data-remove-lesson="${lesson.id}">Remover</button></div>
     </div>`;
 }

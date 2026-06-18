@@ -18,10 +18,10 @@ Fases concluidas:
 
 - Fase 1: Base funcional.
 - Fase 2: Cadastros completos.
+- Fase 3: Regras obrigatorias.
 
 Fases planejadas:
 
-- Fase 3: Regras obrigatorias.
 - Fase 4: Gerador automatico robusto.
 - Fase 5: Ajuste manual seguro.
 - Fase 6: Visualizacoes.
@@ -264,7 +264,7 @@ O sistema ja possui validacoes para:
 - excesso de aulas de uma disciplina no mesmo dia;
 - muitas janelas de professor.
 
-As regras obrigatorias serao reforcadas na Fase 3.
+As regras obrigatorias foram reforcadas na Fase 3. A tela tambem destaca aulas com conflito e mostra o contexto do problema.
 
 ## 9. Geracao automatica
 
@@ -357,15 +357,14 @@ Commits de referencia:
 - A exportacao PDF depende da impressao do navegador.
 - A exportacao Excel ainda nao foi implementada.
 - O algoritmo de geracao ainda e simples.
-- As regras obrigatorias ainda serao endurecidas na Fase 3.
+- O proximo grande reforco sera no algoritmo de geracao automatica.
 
 ## 15. Proximas fases
 
-Proxima fase de desenvolvimento: Fase 3 - Regras obrigatorias.
+Proxima fase de desenvolvimento: Fase 4 - Gerador automatico robusto.
 
 Depois dela:
 
-- Fase 4: Gerador automatico robusto.
 - Fase 5: Ajuste manual seguro.
 - Fase 6: Visualizacoes.
 - Fase 7: Relatorios e exportacao.
