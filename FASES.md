@@ -97,7 +97,7 @@ Entregas concluidas:
 - Aulas com conflito aparecem destacadas na grade.
 - Insercao ou edicao manual retorna conflitos imediatamente.
 
-Commit de conclusao: `d7279d7 Concluir fase 3 de regras obrigatorias`.
+Commit de conclusao: `9d52032 Concluir fase 3 de regras obrigatorias`.
 
 ## Fase 4 - Gerador automatico robusto
 
