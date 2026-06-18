@@ -30,9 +30,21 @@ Validacao:
 
 ## Fase 2 - Cadastros completos
 
-Status: pendente.
+Status: concluida.
 
 Meta: completar formularios, campos, edicao, remocao e regras basicas dos cadastros de escola, professores, turmas, disciplinas, salas, turnos e periodos.
+
+Entregas:
+
+- Cadastro da escola com nome, endereco, ano letivo, dias letivos e horarios dos periodos.
+- Cadastro de professores com contato, disciplinas habilitadas, limite diario, limite de aulas seguidas e preferencias.
+- Cadastro de turmas com serie/ano, turno, quantidade de alunos, sala padrao e dias de aula.
+- Cadastro de disciplinas com carga semanal, aula dupla, restricao de ultimo horario, tipo de sala exigido e observacoes.
+- Cadastro de salas com capacidade, tipo e disciplinas compativeis.
+- Configuracao de turnos e periodos por texto estruturado.
+- Normalizacao automatica de disponibilidade quando dias ou periodos mudam.
+- Protecao contra remocao de cadastros usados na matriz curricular, turmas ou grade gerada.
+- Exibicao resumida dos dados principais nos paineis de cadastro.
 
 ## Fase 3 - Regras obrigatorias
 

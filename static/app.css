@@ -317,6 +317,10 @@ textarea {
   gap: 12px;
 }
 
+.form-grid .span-2 {
+  grid-column: 1 / -1;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

@@ -33,6 +33,13 @@ def empty_db() -> dict:
             "year": str(datetime.now().year),
             "days": DAYS,
             "shifts": [{"id": "manha", "name": "Manha", "periods": DEFAULT_PERIODS}],
+            "periodTimes": {
+                "1a aula": {"start": "07:00", "end": "07:50"},
+                "2a aula": {"start": "07:50", "end": "08:40"},
+                "3a aula": {"start": "08:50", "end": "09:40"},
+                "4a aula": {"start": "09:40", "end": "10:30"},
+                "5a aula": {"start": "10:30", "end": "11:20"},
+            },
         },
         "teachers": [],
         "classes": [],

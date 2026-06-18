@@ -9,6 +9,8 @@ let gradeMode = "class";
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
 const id = () => Math.random().toString(16).slice(2, 14);
+const csvToList = (value) => String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
+const listToCsv = (items) => (items || []).join(", ");
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -51,6 +53,20 @@ async function resetExample() {
 
 function nameOf(collection, itemId, fallback = "") {
   return state[collection].find((item) => item.id === itemId)?.name || fallback;
+}
+
+function schoolDays() {
+  return state?.school?.days?.length ? state.school.days : DAYS;
+}
+
+function activePeriods() {
+  const periods = state?.school?.shifts?.flatMap((shift) => shift.periods || []) || PERIODS;
+  return [...new Set(periods.length ? periods : PERIODS)];
+}
+
+function periodsForClass(schoolClass) {
+  const shift = state.school.shifts.find((item) => item.id === schoolClass?.shift);
+  return shift?.periods?.length ? shift.periods : activePeriods();
 }
 
 function render() {
@@ -140,6 +156,9 @@ function collectionPanel(title, key) {
         <div class="panel-head"><h3>${title}</h3><button data-edit-school>Editar</button></div>
         <p><strong>${state.school.name}</strong></p>
         <p class="muted">${state.school.address || "Endereco nao informado"} | ${state.school.year}</p>
+        <div class="chips">
+          ${(state.school.days || DAYS).map((day) => `<span class="chip">${day}</span>`).join("")}
+        </div>
       </div>`;
   }
   return `
@@ -160,10 +179,16 @@ function collectionPanel(title, key) {
 }
 
 function describeItem(key, item) {
-  if (key === "teachers") return `${item.contact || "Sem contato"} | limite ${item.maxPerDay || "-"} aulas/dia`;
-  if (key === "classes") return `${item.grade || ""} | ${item.students || 0} alunos | ${nameOf("rooms", item.defaultRoomId, "sem sala")}`;
-  if (key === "subjects") return `${item.weeklyLoad || 0} aulas/semana | ${item.requireDouble ? "aula dupla obrigatoria" : "aula simples"}`;
-  if (key === "rooms") return `${item.type || "Sala"} | capacidade ${item.capacity || 0}`;
+  if (key === "teachers") {
+    const subjects = (item.subjects || []).map((subjectId) => nameOf("subjects", subjectId)).filter(Boolean).join(", ") || "sem disciplinas";
+    return `${item.contact || "Sem contato"} | ${subjects} | limite ${item.maxPerDay || "-"} aulas/dia`;
+  }
+  if (key === "classes") return `${item.grade || ""} | ${item.shift || "manha"} | ${item.students || 0} alunos | ${nameOf("rooms", item.defaultRoomId, "sem sala")}`;
+  if (key === "subjects") return `${item.weeklyLoad || 0} aulas/semana | ${item.requireDouble ? "aula dupla obrigatoria" : "aula simples"}${item.requiredRoomType ? ` | ${item.requiredRoomType}` : ""}`;
+  if (key === "rooms") {
+    const compatible = (item.compatibleSubjects || []).map((subjectId) => nameOf("subjects", subjectId)).filter(Boolean).join(", ");
+    return `${item.type || "Sala"} | capacidade ${item.capacity || 0}${compatible ? ` | ${compatible}` : ""}`;
+  }
   return "";
 }
 
@@ -173,10 +198,15 @@ function turnosPanel() {
       <div class="panel-head"><h3>Turnos e periodos</h3><button data-edit-shifts>Editar</button></div>
       <div class="list">
         ${state.school.shifts
-          .map((shift) => `<div class="item"><strong>${shift.name}</strong><span class="muted">${shift.periods.join(", ")}</span></div>`)
+          .map((shift) => `<div class="item"><div><strong>${shift.name}</strong><p class="muted">${shift.id} | ${shift.periods.map(periodLabel).join(", ")}</p></div></div>`)
           .join("")}
       </div>
     </div>`;
+}
+
+function periodLabel(period) {
+  const time = state.school.periodTimes?.[period];
+  return time ? `${period} (${time.start}-${time.end})` : period;
 }
 
 function renderMatriz() {
@@ -224,11 +254,11 @@ function renderDisponibilidade() {
 function availabilityGrid(teacher) {
   return `
     <div class="availability-grid">
-      <strong>Periodo</strong>${DAYS.map((day) => `<strong>${day}</strong>`).join("")}
-      ${PERIODS.map(
+      <strong>Periodo</strong>${schoolDays().map((day) => `<strong>${day}</strong>`).join("")}
+      ${activePeriods().map(
         (period) => `
           <span>${period}</span>
-          ${DAYS.map((day) => {
+          ${schoolDays().map((day) => {
             const blocked = teacher.availability?.[day]?.[period] === "blocked";
             return `<button class="${blocked ? "blocked" : ""}" data-avail="${teacher.id}:${day}:${period}">${blocked ? "Bloqueado" : "Livre"}</button>`;
           }).join("")}`
@@ -284,13 +314,14 @@ function entityTimetable(type, entityId) {
     if (type === "room") return item.roomId === entityId;
     return item.classId === entityId;
   });
-  const days = type === "class" ? entity.days || DAYS : DAYS;
+  const days = type === "class" ? entity.days || schoolDays() : schoolDays();
+  const periods = type === "class" ? periodsForClass(entity) : activePeriods();
   return `
     <div class="table-wrap">
       <table class="timetable">
         <thead><tr><th>Periodo</th>${days.map((day) => `<th>${day}</th>`).join("")}</tr></thead>
         <tbody>
-          ${PERIODS.map(
+          ${periods.map(
             (period) => `<tr>
               <th>${period}</th>
               ${days
@@ -311,12 +342,12 @@ function generalTimetable() {
   return `
     <div class="table-wrap">
       <table class="timetable">
-        <thead><tr><th>Periodo</th>${DAYS.map((day) => `<th>${day}</th>`).join("")}</tr></thead>
+        <thead><tr><th>Periodo</th>${schoolDays().map((day) => `<th>${day}</th>`).join("")}</tr></thead>
         <tbody>
-          ${PERIODS.map(
+          ${activePeriods().map(
             (period) => `<tr>
               <th>${period}</th>
-              ${DAYS.map((day) => {
+              ${schoolDays().map((day) => {
                 const lessons = state.lessons.filter((item) => item.day === day && item.period === period);
                 return `<td>${lessons.length ? lessons.map((lesson) => lessonCard(lesson, "general")).join("") : `<span class="muted">Sem aulas</span>`}</td>`;
               }).join("")}
@@ -382,6 +413,10 @@ function input(name, label, value = "", type = "text") {
   return `<label>${label}<input name="${name}" type="${type}" value="${escapeHtml(value ?? "")}"></label>`;
 }
 
+function textarea(name, label, value = "") {
+  return `<label class="span-2">${label}<textarea name="${name}">${escapeHtml(value ?? "")}</textarea></label>`;
+}
+
 function select(name, label, options, value = "") {
   return `<label>${label}<select name="${name}">${options
     .map((option) => `<option value="${option.value}" ${option.value === value ? "selected" : ""}>${option.label}</option>`)
@@ -402,14 +437,18 @@ function editCollection(key, item = null) {
     teachers: [
       input("name", "Nome", current.name),
       input("contact", "Telefone ou e-mail", current.contact),
+      textarea("subjectsCsv", "Disciplinas que pode lecionar (IDs ou nomes separados por virgula)", listToCsv((current.subjects || []).map((subjectId) => nameOf("subjects", subjectId, subjectId)))),
       input("maxPerDay", "Limite de aulas por dia", current.maxPerDay || 5, "number"),
       input("maxSequential", "Limite de aulas seguidas", current.maxSequential || 4, "number"),
+      textarea("preferences", "Preferencias de horario", current.preferences || ""),
     ],
     classes: [
       input("name", "Nome da turma", current.name),
       input("grade", "Serie/Ano", current.grade),
+      select("shift", "Turno", shiftOptions(), current.shift || "manha"),
       input("students", "Quantidade de alunos", current.students || 0, "number"),
-      select("defaultRoomId", "Sala padrao", optionList(state.rooms), current.defaultRoomId),
+      select("defaultRoomId", "Sala padrao", [{ value: "", label: "Nenhuma" }, ...optionList(state.rooms)], current.defaultRoomId),
+      textarea("daysCsv", "Dias de aula da turma", listToCsv(current.days || schoolDays())),
     ],
     subjects: [
       input("name", "Nome da disciplina", current.name),
@@ -418,20 +457,29 @@ function editCollection(key, item = null) {
       checkbox("requireDouble", "Exige aula dupla", current.requireDouble),
       checkbox("avoidLast", "Evitar ultimo horario", current.avoidLast),
       input("requiredRoomType", "Tipo de sala exigido", current.requiredRoomType),
+      textarea("notes", "Observacoes/restricoes da disciplina", current.notes || ""),
     ],
     rooms: [
       input("name", "Nome da sala/ambiente", current.name),
       input("capacity", "Capacidade", current.capacity || 30, "number"),
       input("type", "Tipo", current.type || "Sala comum"),
+      textarea("compatibleSubjectsCsv", "Disciplinas compativeis (IDs ou nomes separados por virgula; vazio aceita todas)", listToCsv((current.compatibleSubjects || []).map((subjectId) => nameOf("subjects", subjectId, subjectId)))),
     ],
   }[key];
   openModal(item ? "Editar cadastro" : "Novo cadastro", fields, async (data) => {
     const next = { ...current, ...data, id: current.id || id() };
-    if (key === "teachers" && !next.availability) next.availability = defaultAvailability();
+    if (key === "teachers") {
+      next.subjects = resolveSubjectList(data.subjectsCsv);
+      next.maxPerDay = Number(next.maxPerDay || 0);
+      next.maxSequential = Number(next.maxSequential || 0);
+      next.availability = normalizeAvailability(next.availability || defaultAvailability());
+      delete next.subjectsCsv;
+    }
     if (key === "classes") {
       next.shift = next.shift || "manha";
-      next.days = next.days || DAYS;
+      next.days = csvToList(data.daysCsv).length ? csvToList(data.daysCsv) : schoolDays();
       next.students = Number(next.students || 0);
+      delete next.daysCsv;
     }
     if (key === "subjects") {
       next.weeklyLoad = Number(next.weeklyLoad || 0);
@@ -442,7 +490,8 @@ function editCollection(key, item = null) {
     if (key === "rooms") {
       next.capacity = Number(next.capacity || 0);
       next.availability = next.availability || defaultRoomAvailability();
-      next.compatibleSubjects = next.compatibleSubjects || [];
+      next.compatibleSubjects = resolveSubjectList(data.compatibleSubjectsCsv);
+      delete next.compatibleSubjectsCsv;
     }
     state[key] = [...state[key].filter((entry) => entry.id !== next.id), next];
     await save();
@@ -452,9 +501,45 @@ function editCollection(key, item = null) {
 function editSchool() {
   openModal(
     "Cadastro da escola",
-    [input("name", "Nome da escola", state.school.name), input("address", "Endereco", state.school.address), input("year", "Ano letivo", state.school.year)],
+    [
+      input("name", "Nome da escola", state.school.name),
+      input("address", "Endereco", state.school.address),
+      input("year", "Ano letivo", state.school.year),
+      textarea("daysCsv", "Dias letivos da semana", listToCsv(state.school.days || DAYS)),
+      textarea("periodTimesText", "Horarios dos periodos: periodo; inicio; fim", periodTimesToText()),
+    ],
     async (data) => {
-      state.school = { ...state.school, ...data };
+      state.school = { ...state.school, ...data, days: csvToList(data.daysCsv).length ? csvToList(data.daysCsv) : DAYS };
+      state.school.periodTimes = parsePeriodTimes(data.periodTimesText);
+      delete state.school.daysCsv;
+      delete state.school.periodTimesText;
+      normalizeAllAvailability();
+      await save();
+    }
+  );
+}
+
+function editShifts() {
+  const value = (state.school.shifts || [])
+    .map((shift) => `${shift.id}; ${shift.name}; ${(shift.periods || []).join(", ")}`)
+    .join("\n");
+  openModal(
+    "Turnos e periodos",
+    [
+      textarea(
+        "shiftsText",
+        "Um turno por linha: id; nome; periodos separados por virgula",
+        value || "manha; Manha; 1a aula, 2a aula, 3a aula, 4a aula, 5a aula"
+      ),
+    ],
+    async (data) => {
+      const shifts = parseShifts(data.shiftsText);
+      if (!shifts.length) {
+        alert("Informe ao menos um turno valido.");
+        return;
+      }
+      state.school.shifts = shifts;
+      normalizeAllAvailability();
       await save();
     }
   );
@@ -496,7 +581,7 @@ function editLesson(lesson = {}) {
       select("teacherId", "Professor", optionList(state.teachers), lesson.teacherId),
       select("roomId", "Sala", optionList(state.rooms), lesson.roomId),
       select("day", "Dia", DAYS.map((day) => ({ value: day, label: day })), lesson.day),
-      select("period", "Periodo", PERIODS.map((period) => ({ value: period, label: period })), lesson.period),
+      select("period", "Periodo", activePeriods().map((period) => ({ value: period, label: period })), lesson.period),
     ],
     async (data) => {
       const row = state.curriculum.find(
@@ -515,12 +600,107 @@ function optionList(items) {
   return items.map((item) => ({ value: item.id, label: item.name }));
 }
 
+function shiftOptions() {
+  return (state.school.shifts || []).map((shift) => ({ value: shift.id, label: shift.name }));
+}
+
+function resolveSubjectList(value) {
+  const entries = csvToList(value);
+  return entries
+    .map((entry) => {
+      const found = state.subjects.find((subject) => subject.id === entry || subject.name.toLowerCase() === entry.toLowerCase());
+      return found?.id || entry;
+    })
+    .filter(Boolean);
+}
+
+function parseShifts(value) {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [rawId, rawName, rawPeriods] = line.split(";").map((part) => part.trim());
+      const periods = csvToList(rawPeriods);
+      return rawId && rawName && periods.length ? { id: rawId, name: rawName, periods } : null;
+    })
+    .filter(Boolean);
+}
+
+function periodTimesToText() {
+  const periodTimes = state.school.periodTimes || {};
+  return activePeriods()
+    .map((period) => {
+      const time = periodTimes[period] || {};
+      return `${period}; ${time.start || ""}; ${time.end || ""}`;
+    })
+    .join("\n");
+}
+
+function parsePeriodTimes(value) {
+  const result = {};
+  String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const [period, start, end] = line.split(";").map((part) => part.trim());
+      if (period) result[period] = { start: start || "", end: end || "" };
+    });
+  return result;
+}
+
 function defaultAvailability() {
-  return Object.fromEntries(DAYS.map((day) => [day, Object.fromEntries(PERIODS.map((period) => [period, "available"]))]));
+  return Object.fromEntries(schoolDays().map((day) => [day, Object.fromEntries(activePeriods().map((period) => [period, "available"]))]));
 }
 
 function defaultRoomAvailability() {
-  return Object.fromEntries(DAYS.map((day) => [day, Object.fromEntries(PERIODS.map((period) => [period, true]))]));
+  return Object.fromEntries(schoolDays().map((day) => [day, Object.fromEntries(activePeriods().map((period) => [period, true]))]));
+}
+
+function normalizeAvailability(existing) {
+  return Object.fromEntries(
+    schoolDays().map((day) => [
+      day,
+      Object.fromEntries(activePeriods().map((period) => [period, existing?.[day]?.[period] || "available"])),
+    ])
+  );
+}
+
+function normalizeRoomAvailability(existing) {
+  return Object.fromEntries(
+    schoolDays().map((day) => [
+      day,
+      Object.fromEntries(activePeriods().map((period) => [period, existing?.[day]?.[period] ?? true])),
+    ])
+  );
+}
+
+function normalizeAllAvailability() {
+  state.teachers.forEach((teacher) => {
+    teacher.availability = normalizeAvailability(teacher.availability);
+  });
+  state.rooms.forEach((room) => {
+    room.availability = normalizeRoomAvailability(room.availability);
+  });
+  state.classes.forEach((schoolClass) => {
+    schoolClass.days = (schoolClass.days || schoolDays()).filter((day) => schoolDays().includes(day));
+    if (!schoolClass.days.length) schoolClass.days = schoolDays();
+  });
+}
+
+function usageFor(key, itemId) {
+  const labels = [];
+  if (key === "teachers" && state.curriculum.some((row) => row.teacherId === itemId)) labels.push("matriz curricular");
+  if (key === "teachers" && state.lessons.some((lesson) => lesson.teacherId === itemId)) labels.push("grade gerada");
+  if (key === "classes" && state.curriculum.some((row) => row.classId === itemId)) labels.push("matriz curricular");
+  if (key === "classes" && state.lessons.some((lesson) => lesson.classId === itemId)) labels.push("grade gerada");
+  if (key === "subjects" && state.curriculum.some((row) => row.subjectId === itemId)) labels.push("matriz curricular");
+  if (key === "subjects" && state.lessons.some((lesson) => lesson.subjectId === itemId)) labels.push("grade gerada");
+  if (key === "rooms" && state.classes.some((schoolClass) => schoolClass.defaultRoomId === itemId)) labels.push("turma");
+  if (key === "rooms" && state.curriculum.some((row) => row.specialRoomId === itemId)) labels.push("matriz curricular");
+  if (key === "rooms" && state.lessons.some((lesson) => lesson.roomId === itemId)) labels.push("grade gerada");
+  return [...new Set(labels)];
 }
 
 document.addEventListener("click", async (event) => {
@@ -542,10 +722,17 @@ document.addEventListener("click", async (event) => {
   }
   if (target.dataset.delete) {
     const [key, itemId] = target.dataset.delete.split(":");
+    const usage = usageFor(key, itemId);
+    if (usage.length) {
+      alert(`Nao e possivel remover: este cadastro esta em uso em ${usage.join(", ")}.`);
+      return;
+    }
+    if (!confirm("Remover este cadastro?")) return;
     state[key] = state[key].filter((item) => item.id !== itemId);
     await save();
   }
   if (target.dataset.editSchool !== undefined) editSchool();
+  if (target.dataset.editShifts !== undefined) editShifts();
   if (target.dataset.addCurriculum !== undefined) editCurriculum();
   if (target.dataset.editCurriculum) editCurriculum(state.curriculum.find((item) => item.id === target.dataset.editCurriculum));
   if (target.dataset.avail) {

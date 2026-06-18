@@ -42,7 +42,7 @@ Foi criado um servidor HTTP em Python puro (`app.py`), com rotas REST para carre
 
 ### Fase 3 - Cadastros base
 
-A tela de cadastros permite editar a escola e manter professores, turmas, disciplinas, salas e ambientes. A base inicial vem com dados de exemplo para facilitar testes imediatos.
+A tela de cadastros permite editar escola, professores, turmas, disciplinas, salas, ambientes, turnos e periodos. Tambem permite configurar dias letivos, horarios dos periodos, disciplinas habilitadas por professor, compatibilidade de salas e protecao contra remocao de itens em uso.
 
 ### Fase 4 - Matriz curricular
 
