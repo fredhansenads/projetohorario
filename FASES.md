@@ -294,7 +294,7 @@ Usuario inicial:
 - Usuario: `admin`
 - Senha: `admin123`
 
-Commit de conclusao: a preencher apos salvar no Git.
+Commit de conclusao: `8c5983d Concluir fase 8 de login e seguranca`.
 
 ## Fase 9 - Banco de dados real
 

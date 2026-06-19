@@ -408,6 +408,7 @@ Commits de referencia:
 - `09ab8c7`: conclusao da Fase 5.
 - `a706582`: conclusao da Fase 6.
 - `f4ac667`: conclusao da Fase 7.
+- `8c5983d`: conclusao da Fase 8.
 - `03e8b7b`: roteiro completo das fases.
 
 ## 14. Limitacoes conhecidas
