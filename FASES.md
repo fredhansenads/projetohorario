@@ -136,7 +136,7 @@ Entregas concluidas:
 - Resumo da qualidade exibido no painel e nos relatorios.
 - Mensagens de falha preservadas quando a geracao nao consegue alocar tudo.
 
-Commit de conclusao: a preencher apos salvar no Git.
+Commit de conclusao: `20c4540 Concluir fase 4 do gerador automatico`.
 
 ## Fase 5 - Ajuste manual seguro
 

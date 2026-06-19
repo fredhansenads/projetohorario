@@ -351,6 +351,8 @@ Commits de referencia:
 
 - `1cb5825`: conclusao da Fase 1.
 - `f96cc1e`: conclusao da Fase 2.
+- `9d52032`: conclusao da Fase 3.
+- `20c4540`: conclusao da Fase 4.
 - `03e8b7b`: roteiro completo das fases.
 
 ## 14. Limitacoes conhecidas
