@@ -53,10 +53,11 @@ Fases concluidas:
 - Fase 4: Gerador automatico robusto.
 - Fase 5: Ajuste manual seguro.
 - Fase 6: Visualizacoes.
+- Fase 7: Relatorios e exportacao.
 
 Proxima fase:
 
-- Fase 7: Relatorios e exportacao.
+- Fase 8: Login e seguranca.
 
 ## Validacao tecnica
 

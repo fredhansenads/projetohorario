@@ -60,6 +60,21 @@ button.ghost {
   background: transparent;
 }
 
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 9px 11px;
+  text-decoration: none;
+}
+
+.button-link:hover {
+  border-color: var(--accent);
+}
+
 .sidebar {
   min-height: 100vh;
   padding: 24px;
@@ -420,6 +435,19 @@ textarea {
   padding: 20px;
 }
 
+.report-head,
+.report-section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.report-section {
+  margin-top: 24px;
+  break-inside: avoid;
+}
+
 @media (max-width: 900px) {
   body {
     grid-template-columns: 1fr;
@@ -458,5 +486,22 @@ textarea {
 
   #relatorios {
     display: block;
+  }
+
+  .report {
+    padding: 0;
+  }
+
+  .report-section {
+    page-break-inside: avoid;
+  }
+
+  .table-wrap {
+    overflow: visible;
+    border: 0;
+  }
+
+  table {
+    font-size: 11px;
   }
 }

@@ -216,7 +216,7 @@ Commit de conclusao: `a706582 Concluir fase 6 de visualizacoes`.
 
 ## Fase 7 - Relatorios e exportacao
 
-Status: pendente.
+Status: concluida.
 
 Objetivo: concluir impressao, exportacao e relatorios por publico.
 
@@ -236,6 +236,23 @@ Criterios de conclusao:
 - Relatorios podem ser gerados sem ajuste manual de layout.
 - Impressao pelo navegador funciona.
 - Exportacao contem dados suficientes para uso externo.
+
+Entregas concluidas:
+
+- Tela de relatorios com cabecalho da escola, ano letivo, data de geracao e pontuacao.
+- Resumo com total de aulas, conflitos e pendencias.
+- Relatorios por turma, professor e sala.
+- Relatorio de conflitos.
+- Relatorio de cargas horarias pendentes.
+- Exportacao TXT geral.
+- Exportacao CSV geral.
+- Exportacao CSV/TXT por turma.
+- Exportacao CSV/TXT por professor.
+- Exportacao CSV/TXT por sala.
+- Exportacao CSV de conflitos e pendencias.
+- Layout de impressao mais limpo para salvar em PDF pelo navegador.
+
+Commit de conclusao: a preencher apos salvar no Git.
 
 ## Fase 8 - Login e seguranca
 

@@ -22,10 +22,10 @@ Fases concluidas:
 - Fase 4: Gerador automatico robusto.
 - Fase 5: Ajuste manual seguro.
 - Fase 6: Visualizacoes.
+- Fase 7: Relatorios e exportacao.
 
 Fases planejadas:
 
-- Fase 7: Relatorios e exportacao.
 - Fase 8: Login e seguranca.
 - Fase 9: Banco de dados real.
 - Fase 10: Interface profissional.
@@ -182,7 +182,9 @@ Mostra:
 - grades por turma;
 - grades por professor;
 - grades por sala;
-- link para exportacao simples em TXT.
+- resumo de aulas, conflitos e pendencias;
+- links de exportacao CSV/TXT por turma, professor, sala e geral;
+- exportacao CSV de conflitos e pendencias.
 
 O botao "Imprimir PDF" usa a impressao do navegador para gerar PDF.
 
@@ -319,7 +321,23 @@ Descricao:
 - `/api/generate`: gera a grade automaticamente.
 - `/api/lesson`: insere ou altera uma aula.
 - `/api/reset`: restaura dados de exemplo.
-- `/api/export`: exporta relatorio simples em TXT.
+- `/api/export`: exporta horarios, conflitos e pendencias em TXT ou CSV.
+
+Parametros de exportacao:
+
+```text
+scope=general|class|teacher|room|conflicts|pendencies
+id=<id do item, quando scope for class, teacher ou room>
+format=txt|csv
+```
+
+Exemplos:
+
+```text
+/api/export?scope=general&format=csv
+/api/export?scope=class&id=<id>&format=txt
+/api/export?scope=conflicts&format=csv
+```
 
 ## 11. Dados e armazenamento
 
@@ -379,16 +397,14 @@ Commits de referencia:
 - Ainda nao ha login.
 - Ainda nao ha banco de dados relacional.
 - A exportacao PDF depende da impressao do navegador.
-- A exportacao Excel ainda nao foi implementada.
-- Os relatorios e exportacoes ainda serao reforcados na Fase 7.
+- A exportacao Excel nativa ainda nao foi implementada; a versao atual oferece CSV.
 
 ## 15. Proximas fases
 
-Proxima fase de desenvolvimento: Fase 7 - Relatorios e exportacao.
+Proxima fase de desenvolvimento: Fase 8 - Login e seguranca.
 
 Depois dela:
 
-- Fase 8: Login e seguranca.
 - Fase 9: Banco de dados real.
 - Fase 10: Interface profissional.
 - Fase 11: Testes e validacao.

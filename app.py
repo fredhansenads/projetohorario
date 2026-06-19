@@ -5,6 +5,8 @@ import mimetypes
 import os
 import random
 import sys
+import csv
+from io import StringIO
 import uuid
 from copy import deepcopy
 from datetime import datetime
@@ -608,7 +610,7 @@ class AppHandler(BaseHTTPRequestHandler):
             )
             return
         if parsed.path == "/api/export":
-            self.export_response(load_db())
+            self.export_response(load_db(), parsed.query)
             return
         self.serve_static(parsed.path)
 
@@ -713,38 +715,101 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def export_response(self, db: dict) -> None:
+    def export_rows(self, db: dict, scope: str, item_id: str = "") -> list[dict]:
         ix = indexes(db)
-        lines = ["HORARIO ESCOLAR", f"Escola: {db['school'].get('name', '')}", f"Ano letivo: {db['school'].get('year', '')}", ""]
-        for school_class in db["classes"]:
-            lines.append(school_class["name"])
-            class_lessons = [item for item in db.get("lessons", []) if item["classId"] == school_class["id"]]
-            for day in school_class.get("days", DAYS):
-                lines.append(f"  {day}")
-                for period in periods_for_class(db, school_class):
-                    lesson = next((item for item in class_lessons if item["day"] == day and item["period"] == period), None)
-                    if lesson:
-                        lines.append(
-                            "    "
-                            + " | ".join(
-                                [
-                                    period,
-                                    ix["subjects"].get(lesson["subjectId"], {}).get("name", ""),
-                                    ix["teachers"].get(lesson["teacherId"], {}).get("name", ""),
-                                    ix["rooms"].get(lesson["roomId"], {}).get("name", ""),
-                                ]
-                            )
-                        )
-                    else:
-                        lines.append(f"    {period} | Livre")
-            lines.append("")
-        data = "\n".join(lines).encode("utf-8")
+        lessons = db.get("lessons", [])
+        if scope == "class" and item_id:
+            lessons = [item for item in lessons if item.get("classId") == item_id]
+        elif scope == "teacher" and item_id:
+            lessons = [item for item in lessons if item.get("teacherId") == item_id]
+        elif scope == "room" and item_id:
+            lessons = [item for item in lessons if item.get("roomId") == item_id]
+        rows = []
+        period_order = all_periods(db)
+        lessons = sorted(
+            lessons,
+            key=lambda item: (
+                db["school"].get("days", DAYS).index(item.get("day")) if item.get("day") in db["school"].get("days", DAYS) else 99,
+                period_order.index(item.get("period")) if item.get("period") in period_order else 99,
+                ix["classes"].get(item.get("classId"), {}).get("name", ""),
+            ),
+        )
+        for lesson in lessons:
+            rows.append(
+                {
+                    "dia": lesson.get("day", ""),
+                    "periodo": lesson.get("period", ""),
+                    "turma": ix["classes"].get(lesson.get("classId"), {}).get("name", ""),
+                    "disciplina": ix["subjects"].get(lesson.get("subjectId"), {}).get("name", ""),
+                    "professor": ix["teachers"].get(lesson.get("teacherId"), {}).get("name", ""),
+                    "sala": ix["rooms"].get(lesson.get("roomId"), {}).get("name", ""),
+                    "fixada": "sim" if lesson.get("fixed") else "nao",
+                }
+            )
+        return rows
+
+    def export_response(self, db: dict, query: str = "") -> None:
+        params = parse_qs(query)
+        fmt = params.get("format", params.get("formato", ["txt"]))[0]
+        scope = params.get("scope", params.get("escopo", ["general"]))[0]
+        item_id = params.get("id", [""])[0]
+        if scope == "conflicts":
+            data = self.export_validation_csv(validate_schedule(db).get("conflicts", []), "conflitos") if fmt == "csv" else self.export_validation_text(db, "conflicts")
+            filename = "relatorio-conflitos.csv" if fmt == "csv" else "relatorio-conflitos.txt"
+            content_type = "text/csv" if fmt == "csv" else "text/plain"
+        elif scope == "pendencies":
+            data = self.export_validation_csv(validate_schedule(db).get("pendencies", []), "pendencias") if fmt == "csv" else self.export_validation_text(db, "pendencies")
+            filename = "relatorio-pendencias.csv" if fmt == "csv" else "relatorio-pendencias.txt"
+            content_type = "text/csv" if fmt == "csv" else "text/plain"
+        else:
+            rows = self.export_rows(db, scope, item_id)
+            data = self.rows_to_csv(rows) if fmt == "csv" else self.rows_to_text(db, rows, scope)
+            filename = f"horario-{scope}.csv" if fmt == "csv" else f"horario-{scope}.txt"
+            content_type = "text/csv" if fmt == "csv" else "text/plain"
+        payload = data.encode("utf-8-sig" if fmt == "csv" else "utf-8")
         self.send_response(200)
-        self.send_header("Content-Type", "text/plain; charset=utf-8")
-        self.send_header("Content-Disposition", "attachment; filename=horario-escolar.txt")
-        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Content-Type", f"{content_type}; charset=utf-8")
+        self.send_header("Content-Disposition", f"attachment; filename={filename}")
+        self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
-        self.wfile.write(data)
+        self.wfile.write(payload)
+
+    def rows_to_csv(self, rows: list[dict]) -> str:
+        output = StringIO()
+        fieldnames = ["dia", "periodo", "turma", "disciplina", "professor", "sala", "fixada"]
+        writer = csv.DictWriter(output, fieldnames=fieldnames, delimiter=";")
+        writer.writeheader()
+        writer.writerows(rows)
+        return output.getvalue()
+
+    def rows_to_text(self, db: dict, rows: list[dict], scope: str) -> str:
+        lines = ["HORARIO ESCOLAR", f"Escola: {db['school'].get('name', '')}", f"Ano letivo: {db['school'].get('year', '')}", f"Escopo: {scope}", ""]
+        current_day = ""
+        for row in rows:
+            if row["dia"] != current_day:
+                current_day = row["dia"]
+                lines.append(current_day)
+            lines.append("  " + " | ".join([row["periodo"], row["turma"], row["disciplina"], row["professor"], row["sala"], f"fixada: {row['fixada']}"]))
+        return "\n".join(lines)
+
+    def export_validation_csv(self, items: list[dict], kind: str) -> str:
+        output = StringIO()
+        writer = csv.DictWriter(output, fieldnames=["tipo", "mensagem", "contexto"], delimiter=";")
+        writer.writeheader()
+        for item in items:
+            writer.writerow({"tipo": kind, "mensagem": item.get("message", ""), "contexto": item.get("context", "")})
+        return output.getvalue()
+
+    def export_validation_text(self, db: dict, scope: str) -> str:
+        validation = validate_schedule(db)
+        items = validation.get("conflicts" if scope == "conflicts" else "pendencies", [])
+        title = "CONFLITOS" if scope == "conflicts" else "PENDENCIAS"
+        lines = [title, f"Escola: {db['school'].get('name', '')}", f"Ano letivo: {db['school'].get('year', '')}", ""]
+        for item in items:
+            lines.append(f"- {item.get('message', '')}")
+            if item.get("context"):
+                lines.append(f"  {item.get('context')}")
+        return "\n".join(lines)
 
     def serve_static(self, path: str) -> None:
         if path in ("", "/"):

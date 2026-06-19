@@ -491,22 +491,49 @@ function isSpecialRoomLesson(lesson) {
 function renderRelatorios() {
   $("#relatorios").innerHTML = `
     <div class="report">
-      <h2>${state.school.name}</h2>
-      <p class="muted">Ano letivo ${state.school.year} | Pontuacao ${validation.score}</p>
+      <div class="report-head">
+        <div>
+          <h2>${state.school.name}</h2>
+          <p class="muted">Ano letivo ${state.school.year} | Gerado em ${new Date().toLocaleString("pt-BR")} | Pontuacao ${validation.score}</p>
+        </div>
+        <div class="chips no-print">
+          <a class="button-link" href="/api/export?scope=general&format=csv">CSV geral</a>
+          <a class="button-link" href="/api/export?scope=general&format=txt">TXT geral</a>
+          <a class="button-link" href="/api/export?scope=conflicts&format=csv">CSV conflitos</a>
+          <a class="button-link" href="/api/export?scope=pendencies&format=csv">CSV pendencias</a>
+        </div>
+      </div>
       ${validation.quality ? `<p class="muted">Gerador: tentativa ${validation.quality.attempt}/${validation.quality.maxAttempts}, ${validation.quality.fixedLessons} aulas fixadas, ${validation.quality.teacherWindows} janelas.</p>` : ""}
+      <div class="grid three">
+        ${metric("Aulas", state.lessons.length)}
+        ${metric("Conflitos", validation.conflicts.length)}
+        ${metric("Pendencias", validation.pendencies.length)}
+      </div>
       <h3>Conflitos</h3>
       <div class="list">${alertList(validation.conflicts, "danger")}</div>
       <h3>Cargas horarias pendentes</h3>
       <div class="list">${alertList(validation.pendencies)}</div>
       <h3>Grades por turma</h3>
-      ${state.classes.map((schoolClass) => `<h4>${schoolClass.name}</h4>${timetable(schoolClass.id)}`).join("")}
+      ${state.classes.map((schoolClass) => reportBlock("class", schoolClass.id, schoolClass.name, timetable(schoolClass.id))).join("")}
       <h3>Grades por professor</h3>
-      ${state.teachers.map((teacher) => `<h4>${teacher.name}</h4>${entityTimetable("teacher", teacher.id)}`).join("")}
+      ${state.teachers.map((teacher) => reportBlock("teacher", teacher.id, teacher.name, entityTimetable("teacher", teacher.id))).join("")}
       <h3>Grades por sala</h3>
-      ${state.rooms.map((room) => `<h4>${room.name}</h4>${entityTimetable("room", room.id)}`).join("")}
-      <h3>Exportacao</h3>
-      <p><a href="/api/export">Baixar relatorio em TXT</a></p>
+      ${state.rooms.map((room) => reportBlock("room", room.id, room.name, entityTimetable("room", room.id))).join("")}
     </div>`;
+}
+
+function reportBlock(scope, itemId, title, content) {
+  return `
+    <section class="report-section">
+      <div class="report-section-head">
+        <h4>${title}</h4>
+        <div class="chips no-print">
+          <a class="button-link" href="/api/export?scope=${scope}&id=${itemId}&format=csv">CSV</a>
+          <a class="button-link" href="/api/export?scope=${scope}&id=${itemId}&format=txt">TXT</a>
+        </div>
+      </div>
+      ${content}
+    </section>`;
 }
 
 function openModal(title, fields, onSubmit) {
