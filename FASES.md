@@ -212,7 +212,7 @@ Entregas concluidas:
 - Lista de cargas pendentes na tela de grade.
 - Indicadores visuais para aulas fixadas, aulas com conflito e aulas em sala especial.
 
-Commit de conclusao: a preencher apos salvar no Git.
+Commit de conclusao: `a706582 Concluir fase 6 de visualizacoes`.
 
 ## Fase 7 - Relatorios e exportacao
 
