@@ -252,7 +252,7 @@ Entregas concluidas:
 - Exportacao CSV de conflitos e pendencias.
 - Layout de impressao mais limpo para salvar em PDF pelo navegador.
 
-Commit de conclusao: a preencher apos salvar no Git.
+Commit de conclusao: `f4ac667 Concluir fase 7 de relatorios e exportacao`.
 
 ## Fase 8 - Login e seguranca
 
