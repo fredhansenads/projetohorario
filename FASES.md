@@ -330,7 +330,7 @@ Entregas concluidas:
 - Painel com resumo do banco, geracoes e backups.
 - `/api/health` informa o arquivo SQLite usado.
 
-Commit de conclusao: a preencher apos salvar no Git.
+Commit de conclusao: `70a9f58 Concluir fase 9 de banco de dados`.
 
 ## Fase 10 - Interface profissional
 
