@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import random
 import sys
 import uuid
 from copy import deepcopy
@@ -349,16 +350,17 @@ def double_lesson_conflicts(db: dict, row: dict, lessons: list[dict]) -> list[di
 
 def soft_warnings(db: dict, lessons: list[dict]) -> list[dict]:
     ix = indexes(db)
+    period_order = all_periods(db)
     warnings = []
     for teacher in db["teachers"]:
         for day in db["school"].get("days", DAYS):
             teacher_lessons = sorted(
                 [item for item in lessons if item["teacherId"] == teacher["id"] and item["day"] == day],
-                key=lambda item: DEFAULT_PERIODS.index(item["period"]) if item["period"] in DEFAULT_PERIODS else 99,
+                key=lambda item: period_order.index(item["period"]) if item["period"] in period_order else 99,
             )
             if len(teacher_lessons) > int(teacher.get("maxPerDay") or 99):
                 warnings.append({"message": f"{teacher['name']} excede o limite de aulas no dia {day}."})
-            occupied = [DEFAULT_PERIODS.index(item["period"]) for item in teacher_lessons if item["period"] in DEFAULT_PERIODS]
+            occupied = [period_order.index(item["period"]) for item in teacher_lessons if item["period"] in period_order]
             if len(occupied) > 1 and max(occupied) - min(occupied) + 1 > len(occupied) + 1:
                 warnings.append({"message": f"{teacher['name']} tem muitas janelas na {day}."})
     for school_class in db["classes"]:
@@ -374,11 +376,45 @@ def soft_warnings(db: dict, lessons: list[dict]) -> list[dict]:
 
 
 def generate_schedule(db: dict) -> dict:
-    generated = []
-    fixed = deepcopy(db.get("fixedLessons", []))
-    generated.extend(fixed)
+    fixed = fixed_lessons(db)
+    attempts = max(30, min(120, len(db.get("curriculum", [])) * 12 or 30))
+    best_lessons = None
+    best_validation = None
+    best_failures = []
+    for attempt in range(attempts):
+        generated, failures = build_schedule_attempt(db, fixed, attempt)
+        candidate_db = deepcopy(db)
+        candidate_db["lessons"] = generated
+        validation = validate_schedule(candidate_db)
+        quality = quality_metrics(candidate_db, generated, validation, attempt + 1, attempts, len(fixed))
+        validation["quality"] = quality
+        validation["score"] = quality["score"]
+        if best_validation is None or quality["score"] > best_validation["score"]:
+            best_lessons = generated
+            best_validation = validation
+            best_failures = failures
+        if not validation["conflicts"] and not validation["pendencies"] and quality["score"] >= 95:
+            break
+    db["lessons"] = best_lessons or fixed
+    best_validation = best_validation or validate_schedule(db)
+    best_validation["generationMessages"] = best_failures
+    return best_validation
+
+
+def fixed_lessons(db: dict) -> list[dict]:
+    fixed = []
+    seen = set()
+    for lesson in db.get("fixedLessons", []) + db.get("lessons", []):
+        if lesson.get("fixed") and lesson.get("id") not in seen:
+            fixed.append(deepcopy(lesson))
+            seen.add(lesson.get("id"))
+    return fixed
+
+
+def build_schedule_attempt(db: dict, fixed: list[dict], attempt: int) -> tuple[list[dict], list[str]]:
+    generated = deepcopy(fixed)
     ix = indexes(db)
-    rows = sorted(db["curriculum"], key=lambda item: (not item.get("requiresDouble"), -int(item.get("weeklyLessons", 0))))
+    rows = generation_order(db, attempt)
     failures = []
     for row in rows:
         already = len([item for item in generated if item.get("curriculumId") == row["id"]])
@@ -386,7 +422,7 @@ def generate_schedule(db: dict) -> dict:
         block_size = 2 if row.get("requiresDouble") else 1
         while remaining > 0:
             size = block_size if remaining >= block_size else 1
-            placement = find_slot(db, row, generated, size)
+            placement = find_slot(db, row, generated, size, attempt)
             if not placement:
                 subject = ix["subjects"].get(row["subjectId"], {})
                 school_class = ix["classes"].get(row["classId"], {})
@@ -408,13 +444,24 @@ def generate_schedule(db: dict) -> dict:
                     }
                 )
             remaining -= len(periods)
-    db["lessons"] = generated
-    validation = validate_schedule(db)
-    validation["generationMessages"] = failures
-    return validation
+    return generated, failures
 
 
-def find_slot(db: dict, row: dict, lessons: list[dict], size: int) -> tuple[str, list[str], str] | None:
+def generation_order(db: dict, attempt: int) -> list[dict]:
+    rows = list(db["curriculum"])
+    random.Random(attempt).shuffle(rows)
+    return sorted(
+        rows,
+        key=lambda item: (
+            not item.get("requiresDouble"),
+            not item.get("specialRoomId"),
+            -int(item.get("weeklyLessons", 0)),
+            item.get("classId", ""),
+        ),
+    )
+
+
+def find_slot(db: dict, row: dict, lessons: list[dict], size: int, attempt: int = 0) -> tuple[str, list[str], str] | None:
     ix = indexes(db)
     school_class = ix["classes"][row["classId"]]
     subject = ix["subjects"][row["subjectId"]]
@@ -444,7 +491,7 @@ def find_slot(db: dict, row: dict, lessons: list[dict], size: int) -> tuple[str,
                 for period in periods
             ]
             if all(teacher_available(teacher, day, period) and not hard_conflicts(db, lesson, lessons) for lesson, period in zip(proposed, periods)):
-                candidates.append((slot_score(db, row, day, periods, lessons), day, periods, room_id))
+                candidates.append((slot_score(db, row, day, periods, lessons, attempt), day, periods, room_id))
     if not candidates:
         return None
     candidates.sort(key=lambda item: item[0], reverse=True)
@@ -452,15 +499,87 @@ def find_slot(db: dict, row: dict, lessons: list[dict], size: int) -> tuple[str,
     return day, periods, room_id
 
 
-def slot_score(db: dict, row: dict, day: str, periods: list[str], lessons: list[dict]) -> int:
+def slot_score(db: dict, row: dict, day: str, periods: list[str], lessons: list[dict], attempt: int = 0) -> int:
+    ix = indexes(db)
+    subject = ix["subjects"].get(row["subjectId"], {})
+    school_class = ix["classes"].get(row["classId"], {})
+    class_periods = periods_for_class(db, school_class) if school_class else all_periods(db)
     score = 100
     same_subject_day = len([item for item in lessons if item["classId"] == row["classId"] and item["subjectId"] == row["subjectId"] and item["day"] == day])
     teacher_day = len([item for item in lessons if item["teacherId"] == row["teacherId"] and item["day"] == day])
     class_day = len([item for item in lessons if item["classId"] == row["classId"] and item["day"] == day])
-    score -= same_subject_day * 8
-    score -= teacher_day * 2
+    subject_days = len({item["day"] for item in lessons if item["classId"] == row["classId"] and item["subjectId"] == row["subjectId"]})
+    score -= same_subject_day * 14
+    score += subject_days * 3
+    score -= teacher_day * 3
     score -= class_day
+    if subject.get("avoidLast") and periods[-1] == class_periods[-1]:
+        score -= 40
+    if row.get("requiresDouble") and len(periods) == 2:
+        score += 12
+    score -= teacher_window_penalty(row["teacherId"], day, periods, lessons)
+    score += random.Random(f"{attempt}-{row['id']}-{day}-{periods[0]}").randint(0, 7)
     return score
+
+
+def teacher_window_penalty(teacher_id: str, day: str, periods: list[str], lessons: list[dict]) -> int:
+    period_order = DEFAULT_PERIODS
+    occupied = [item["period"] for item in lessons if item["teacherId"] == teacher_id and item["day"] == day]
+    indexes = [period_order.index(period) for period in occupied + periods if period in period_order]
+    if len(indexes) < 2:
+        return 0
+    return max(0, (max(indexes) - min(indexes) + 1 - len(set(indexes))) * 4)
+
+
+def quality_metrics(db: dict, lessons: list[dict], validation: dict, attempt: int, max_attempts: int, fixed_count: int) -> dict:
+    warning_count = len(validation.get("warnings", []))
+    conflict_count = len(validation.get("conflicts", []))
+    pendency_count = len(validation.get("pendencies", []))
+    distribution_penalty = distribution_penalty_score(db, lessons)
+    windows = teacher_windows(db, lessons)
+    score = 100
+    score -= conflict_count * 18
+    score -= pendency_count * 12
+    score -= warning_count * 2
+    score -= distribution_penalty
+    score -= windows * 3
+    score = max(0, min(100, score))
+    return {
+        "score": score,
+        "attempt": attempt,
+        "maxAttempts": max_attempts,
+        "fixedLessons": fixed_count,
+        "teacherWindows": windows,
+        "distributionPenalty": distribution_penalty,
+        "conflicts": conflict_count,
+        "pendencies": pendency_count,
+        "warnings": warning_count,
+    }
+
+
+def distribution_penalty_score(db: dict, lessons: list[dict]) -> int:
+    penalty = 0
+    for row in db["curriculum"]:
+        days = [item["day"] for item in lessons if item.get("curriculumId") == row["id"]]
+        if not days:
+            continue
+        daily_counts = {day: days.count(day) for day in set(days)}
+        penalty += sum(max(0, count - 2) * 3 for count in daily_counts.values())
+        expected_spread = min(len(days), len(db["school"].get("days", DAYS)))
+        actual_spread = len(daily_counts)
+        penalty += max(0, expected_spread - actual_spread)
+    return penalty
+
+
+def teacher_windows(db: dict, lessons: list[dict]) -> int:
+    period_order = all_periods(db)
+    windows = 0
+    for teacher in db["teachers"]:
+        for day in db["school"].get("days", DAYS):
+            indexes = sorted(period_order.index(item["period"]) for item in lessons if item["teacherId"] == teacher["id"] and item["day"] == day and item["period"] in period_order)
+            if len(indexes) > 1:
+                windows += max(0, max(indexes) - min(indexes) + 1 - len(indexes))
+    return windows
 
 
 class AppHandler(BaseHTTPRequestHandler):

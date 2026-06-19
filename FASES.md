@@ -101,7 +101,7 @@ Commit de conclusao: `9d52032 Concluir fase 3 de regras obrigatorias`.
 
 ## Fase 4 - Gerador automatico robusto
 
-Status: pendente.
+Status: concluida.
 
 Objetivo: melhorar o algoritmo de geracao, pontuacao e distribuicao semanal.
 
@@ -123,6 +123,20 @@ Criterios de conclusao:
 - Pontuacao explica a qualidade do horario.
 - Falhas sao apresentadas de forma compreensivel.
 - Aulas fixadas sao preservadas.
+
+Entregas concluidas:
+
+- Geracao com multiplas tentativas e escolha da melhor pontuacao.
+- Preservacao de aulas fixadas antes de gerar novamente.
+- Ordenacao de matriz por restricao: aula dupla, sala especial e carga semanal.
+- Pontuacao com conflitos, pendencias, alertas, distribuicao e janelas de professores.
+- Penalidade para aulas mal distribuidas na semana.
+- Penalidade para janelas dos professores.
+- Pequena variacao controlada entre tentativas para evitar sempre a mesma grade.
+- Resumo da qualidade exibido no painel e nos relatorios.
+- Mensagens de falha preservadas quando a geracao nao consegue alocar tudo.
+
+Commit de conclusao: a preencher apos salvar no Git.
 
 ## Fase 5 - Ajuste manual seguro
 

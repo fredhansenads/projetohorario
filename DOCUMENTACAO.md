@@ -19,10 +19,10 @@ Fases concluidas:
 - Fase 1: Base funcional.
 - Fase 2: Cadastros completos.
 - Fase 3: Regras obrigatorias.
+- Fase 4: Gerador automatico robusto.
 
 Fases planejadas:
 
-- Fase 4: Gerador automatico robusto.
 - Fase 5: Ajuste manual seguro.
 - Fase 6: Visualizacoes.
 - Fase 7: Relatorios e exportacao.
@@ -268,14 +268,17 @@ As regras obrigatorias foram reforcadas na Fase 3. A tela tambem destaca aulas c
 
 ## 9. Geracao automatica
 
-O gerador atual usa uma estrategia gulosa:
+O gerador atual usa multiplas tentativas pontuadas:
 
-1. Ordena a matriz curricular, priorizando itens mais restritivos.
-2. Tenta alocar aulas respeitando turma, professor, sala, disponibilidade e aula dupla.
-3. Registra pendencias quando nao consegue alocar toda a carga.
-4. Calcula uma pontuacao de qualidade.
+1. Preserva aulas fixadas.
+2. Ordena a matriz curricular, priorizando itens mais restritivos.
+3. Executa varias tentativas com pequena variacao controlada.
+4. Tenta alocar aulas respeitando turma, professor, sala, disponibilidade e aula dupla.
+5. Mede conflitos, pendencias, alertas, distribuicao e janelas.
+6. Escolhe a melhor grade encontrada.
+7. Registra mensagens quando nao consegue alocar toda a carga.
 
-Na Fase 4, o gerador sera melhorado para distribuir melhor as aulas e reduzir janelas.
+O painel mostra a tentativa escolhida, pontuacao, quantidade de aulas fixadas, janelas e penalidade de distribuicao.
 
 ## 10. API interna
 
@@ -356,16 +359,14 @@ Commits de referencia:
 - Ainda nao ha banco de dados relacional.
 - A exportacao PDF depende da impressao do navegador.
 - A exportacao Excel ainda nao foi implementada.
-- O algoritmo de geracao ainda e simples.
-- O proximo grande reforco sera no algoritmo de geracao automatica.
+- O ajuste manual ainda sera reforcado na Fase 5.
 
 ## 15. Proximas fases
 
-Proxima fase de desenvolvimento: Fase 4 - Gerador automatico robusto.
+Proxima fase de desenvolvimento: Fase 5 - Ajuste manual seguro.
 
 Depois dela:
 
-- Fase 5: Ajuste manual seguro.
 - Fase 6: Visualizacoes.
 - Fase 7: Relatorios e exportacao.
 - Fase 8: Login e seguranca.

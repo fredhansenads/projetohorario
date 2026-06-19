@@ -98,6 +98,7 @@ function renderDashboard() {
       </div>
       <p class="muted">Ultima gravacao: ${state.updatedAt || "ainda nao informada"}</p>
     </div>
+    ${qualityPanel()}
     <div class="grid two" style="margin-top:16px">
       <div class="panel">
         <div class="panel-head"><h3>Alertas obrigatorios</h3><span class="chip">${validation.conflicts.length}</span></div>
@@ -121,6 +122,27 @@ function renderDashboard() {
       </div>
     </div>
   `;
+}
+
+function qualityPanel() {
+  const quality = validation.quality;
+  if (!quality) {
+    return `
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-head"><h3>Gerador automatico</h3><span class="chip">Aguardando geracao</span></div>
+        <p class="muted">Clique em "Gerar horario" para calcular pontuacao detalhada, tentativas e qualidade.</p>
+      </div>`;
+  }
+  return `
+    <div class="panel" style="margin-top:16px">
+      <div class="panel-head"><h3>Gerador automatico</h3><span class="chip">Tentativa ${quality.attempt}/${quality.maxAttempts}</span></div>
+      <div class="chips">
+        <span class="chip">Pontuacao ${quality.score}</span>
+        <span class="chip">Fixadas ${quality.fixedLessons}</span>
+        <span class="chip">Janelas ${quality.teacherWindows}</span>
+        <span class="chip">Distribuicao ${quality.distributionPenalty}</span>
+      </div>
+    </div>`;
 }
 
 function metric(label, value) {
@@ -386,6 +408,7 @@ function renderRelatorios() {
     <div class="report">
       <h2>${state.school.name}</h2>
       <p class="muted">Ano letivo ${state.school.year} | Pontuacao ${validation.score}</p>
+      ${validation.quality ? `<p class="muted">Gerador: tentativa ${validation.quality.attempt}/${validation.quality.maxAttempts}, ${validation.quality.fixedLessons} aulas fixadas, ${validation.quality.teacherWindows} janelas.</p>` : ""}
       <h3>Conflitos</h3>
       <div class="list">${alertList(validation.conflicts, "danger")}</div>
       <h3>Cargas horarias pendentes</h3>
