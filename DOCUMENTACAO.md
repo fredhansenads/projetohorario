@@ -94,6 +94,7 @@ FASES.md
 DOCUMENTACAO.md
 iniciar.bat
 data/
+  horario.sqlite3
   horario-db.json
 ```
 
@@ -107,7 +108,8 @@ Descricao:
 - `FASES.md`: memoria e roteiro de evolucao da Fase 1 a Fase 12.
 - `DOCUMENTACAO.md`: documentacao oficial do sistema.
 - `iniciar.bat`: atalho para iniciar o servidor no Windows.
-- `data/horario-db.json`: arquivo de dados criado automaticamente em tempo de uso.
+- `data/horario.sqlite3`: banco de dados principal criado automaticamente em tempo de uso.
+- `data/horario-db.json`: arquivo legado usado apenas para migracao automatica quando existir.
 
 ## 6. Modulos do sistema
 
@@ -319,6 +321,9 @@ POST   /api/state
 GET    /api/users
 POST   /api/users
 DELETE /api/users?id=<id>
+GET    /api/history
+GET    /api/backups
+POST   /api/backup
 GET    /api/health
 POST   /api/generate
 POST   /api/lesson
@@ -334,6 +339,9 @@ Descricao:
 - `/api/logout`: encerra sessao.
 - `/api/state`: carrega ou salva o estado completo.
 - `/api/users`: lista, cria, atualiza ou remove usuarios.
+- `/api/history`: lista historico recente de geracoes.
+- `/api/backups`: lista backups manuais.
+- `/api/backup`: cria backup manual do estado atual.
 - `/api/health`: retorna status da aplicacao.
 - `/api/generate`: gera a grade automaticamente.
 - `/api/lesson`: insere ou altera uma aula.
@@ -361,8 +369,10 @@ Exemplos:
 Os dados ficam em:
 
 ```text
-data/horario-db.json
+data/horario.sqlite3
 ```
+
+O arquivo JSON antigo `data/horario-db.json` e usado apenas como fonte de migracao automatica quando existir.
 
 A pasta `data/` e ignorada pelo Git para evitar salvar dados locais no repositorio.
 
@@ -413,16 +423,15 @@ Commits de referencia:
 
 ## 14. Limitacoes conhecidas
 
-- Ainda nao ha banco de dados relacional.
+- Ainda nao ha PostgreSQL ou banco servidor; a versao atual usa SQLite local.
 - A exportacao PDF depende da impressao do navegador.
 - A exportacao Excel nativa ainda nao foi implementada; a versao atual oferece CSV.
 
 ## 15. Proximas fases
 
-Proxima fase de desenvolvimento: Fase 9 - Banco de dados real.
+Proxima fase de desenvolvimento: Fase 10 - Interface profissional.
 
 Depois dela:
 
-- Fase 10: Interface profissional.
 - Fase 11: Testes e validacao.
 - Fase 12: Implantacao.

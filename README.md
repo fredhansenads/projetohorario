@@ -34,7 +34,7 @@ No Windows, tambem e possivel dar dois cliques em `iniciar.bat`.
 Os dados ficam em:
 
 ```text
-data/horario-db.json
+data/horario.sqlite3
 ```
 
 A rota de saude da aplicacao fica em:
@@ -55,10 +55,11 @@ Fases concluidas:
 - Fase 6: Visualizacoes.
 - Fase 7: Relatorios e exportacao.
 - Fase 8: Login e seguranca.
+- Fase 9: Banco de dados real.
 
 Proxima fase:
 
-- Fase 9: Banco de dados real.
+- Fase 10: Interface profissional.
 
 Primeiro acesso:
 

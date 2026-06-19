@@ -10,6 +10,8 @@ let cadastroSearch = "";
 let gradeSearch = "";
 let currentUser = null;
 let sessionToken = "";
+let generationHistory = [];
+let backups = [];
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
@@ -36,7 +38,30 @@ async function load() {
   const payload = await api("/api/state");
   state = payload.data;
   validation = payload.validation;
+  await loadStorageInfo();
   render();
+}
+
+async function loadStorageInfo() {
+  try {
+    const history = await api("/api/history");
+    generationHistory = history.history || [];
+    if (currentUser?.role === "admin") {
+      const backupPayload = await api("/api/backups");
+      backups = backupPayload.backups || [];
+    }
+  } catch {
+    generationHistory = [];
+    backups = [];
+  }
+}
+
+async function createBackup() {
+  const label = prompt("Nome do backup", `backup-${new Date().toLocaleDateString("pt-BR")}`);
+  if (!label) return;
+  const response = await api("/api/backup", { method: "POST", body: JSON.stringify({ label }) });
+  backups = response.backups || [];
+  renderDashboard();
 }
 
 async function bootstrap() {
@@ -154,6 +179,7 @@ function renderDashboard() {
       <p class="muted">Ultima gravacao: ${state.updatedAt || "ainda nao informada"}</p>
     </div>
     ${qualityPanel()}
+    ${storagePanel()}
     <div class="grid two" style="margin-top:16px">
       <div class="panel">
         <div class="panel-head"><h3>Alertas obrigatorios</h3><span class="chip">${validation.conflicts.length}</span></div>
@@ -177,6 +203,26 @@ function renderDashboard() {
       </div>
     </div>
   `;
+}
+
+function storagePanel() {
+  return `
+    <div class="grid two" style="margin-top:16px">
+      <div class="panel">
+        <div class="panel-head"><h3>Banco de dados</h3>${currentUser?.role === "admin" ? `<button data-create-backup>Criar backup</button>` : ""}</div>
+        <div class="chips">
+          <span class="chip">SQLite</span>
+          <span class="chip">${generationHistory.length} geracoes registradas</span>
+          <span class="chip">${backups.length} backups</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Historico recente</h3><span class="chip">${generationHistory.length}</span></div>
+        <div class="list">
+          ${generationHistory.slice(0, 4).map((item) => `<div class="item"><div><strong>${item.createdAt}</strong><p class="muted">Pontuacao ${item.score} | ${item.lessons} aulas | conflitos ${item.conflicts}</p></div></div>`).join("") || `<p class="muted">Nenhuma geracao registrada.</p>`}
+        </div>
+      </div>
+    </div>`;
 }
 
 function qualityPanel() {
@@ -1002,6 +1048,7 @@ document.addEventListener("click", async (event) => {
     gradeMode = target.dataset.gradeMode;
     renderGrade();
   }
+  if (target.dataset.createBackup !== undefined) createBackup();
   if (target.dataset.add) editCollection(target.dataset.add);
   if (target.dataset.edit) {
     const [key, itemId] = target.dataset.edit.split(":");

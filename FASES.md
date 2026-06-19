@@ -298,7 +298,7 @@ Commit de conclusao: `8c5983d Concluir fase 8 de login e seguranca`.
 
 ## Fase 9 - Banco de dados real
 
-Status: pendente.
+Status: concluida.
 
 Objetivo: substituir ou complementar o JSON por banco de dados adequado para uso continuo.
 
@@ -316,6 +316,21 @@ Criterios de conclusao:
 - Dados sobrevivem a reinicios e atualizacoes.
 - Estrutura suporta crescimento da escola.
 - Backup pode ser feito e restaurado.
+
+Entregas concluidas:
+
+- SQLite como armazenamento principal em `data/horario.sqlite3`.
+- Migracao automatica do JSON legado quando existir.
+- Tabela `app_state` para estado atual da aplicacao.
+- Tabela `generation_history` para historico de geracoes.
+- Tabela `backups` para backups manuais.
+- Rota `/api/history` para consultar historico recente.
+- Rota `/api/backups` para listar backups.
+- Rota `/api/backup` para criar backup manual.
+- Painel com resumo do banco, geracoes e backups.
+- `/api/health` informa o arquivo SQLite usado.
+
+Commit de conclusao: a preencher apos salvar no Git.
 
 ## Fase 10 - Interface profissional
 

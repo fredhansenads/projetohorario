@@ -10,6 +10,7 @@ import hashlib
 import hmac
 from io import StringIO
 import secrets
+import sqlite3
 import uuid
 from copy import deepcopy
 from datetime import datetime
@@ -21,6 +22,7 @@ from urllib.parse import parse_qs, urlparse
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DB_FILE = DATA_DIR / "horario-db.json"
+SQLITE_FILE = DATA_DIR / "horario.sqlite3"
 STATIC_DIR = BASE_DIR / "static"
 SESSIONS: dict[str, str] = {}
 
@@ -62,10 +64,15 @@ def empty_db() -> dict:
 
 def load_db() -> dict:
     DATA_DIR.mkdir(exist_ok=True)
-    if not DB_FILE.exists():
-        save_db(seed_db())
-    with DB_FILE.open("r", encoding="utf-8") as file:
-        db = json.load(file)
+    init_storage()
+    db = load_db_from_sqlite()
+    if db is None:
+        if DB_FILE.exists():
+            with DB_FILE.open("r", encoding="utf-8") as file:
+                db = json.load(file)
+        else:
+            db = seed_db()
+        save_db(db)
     changed = ensure_security(db)
     if changed:
         save_db(db)
@@ -74,9 +81,112 @@ def load_db() -> dict:
 
 def save_db(db: dict) -> None:
     DATA_DIR.mkdir(exist_ok=True)
+    init_storage()
     db["updatedAt"] = datetime.now().isoformat(timespec="seconds")
-    with DB_FILE.open("w", encoding="utf-8") as file:
-        json.dump(db, file, ensure_ascii=False, indent=2)
+    with sqlite3.connect(SQLITE_FILE) as conn:
+        conn.execute(
+            """
+            insert into app_state (id, payload, updated_at)
+            values (1, ?, ?)
+            on conflict(id) do update set payload = excluded.payload, updated_at = excluded.updated_at
+            """,
+            (json.dumps(db, ensure_ascii=False), db["updatedAt"]),
+        )
+
+
+def init_storage() -> None:
+    DATA_DIR.mkdir(exist_ok=True)
+    with sqlite3.connect(SQLITE_FILE) as conn:
+        conn.execute(
+            """
+            create table if not exists app_state (
+                id integer primary key,
+                payload text not null,
+                updated_at text not null
+            )
+            """
+        )
+        conn.execute(
+            """
+            create table if not exists generation_history (
+                id text primary key,
+                created_at text not null,
+                score integer not null,
+                conflicts integer not null,
+                pendencies integer not null,
+                lessons integer not null,
+                payload text not null
+            )
+            """
+        )
+        conn.execute(
+            """
+            create table if not exists backups (
+                id text primary key,
+                created_at text not null,
+                label text not null,
+                payload text not null
+            )
+            """
+        )
+
+
+def load_db_from_sqlite() -> dict | None:
+    with sqlite3.connect(SQLITE_FILE) as conn:
+        row = conn.execute("select payload from app_state where id = 1").fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def record_generation(db: dict, validation: dict) -> None:
+    init_storage()
+    created_at = datetime.now().isoformat(timespec="seconds")
+    with sqlite3.connect(SQLITE_FILE) as conn:
+        conn.execute(
+            """
+            insert into generation_history (id, created_at, score, conflicts, pendencies, lessons, payload)
+            values (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                new_id(),
+                created_at,
+                int(validation.get("score", 0)),
+                len(validation.get("conflicts", [])),
+                len(validation.get("pendencies", [])),
+                len(db.get("lessons", [])),
+                json.dumps({"db": public_db(db), "validation": validation}, ensure_ascii=False),
+            ),
+        )
+
+
+def list_generation_history(limit: int = 20) -> list[dict]:
+    init_storage()
+    with sqlite3.connect(SQLITE_FILE) as conn:
+        rows = conn.execute(
+            "select id, created_at, score, conflicts, pendencies, lessons from generation_history order by created_at desc limit ?",
+            (limit,),
+        ).fetchall()
+    return [
+        {"id": row[0], "createdAt": row[1], "score": row[2], "conflicts": row[3], "pendencies": row[4], "lessons": row[5]}
+        for row in rows
+    ]
+
+
+def create_backup(db: dict, label: str = "manual") -> dict:
+    init_storage()
+    backup = {"id": new_id(), "createdAt": datetime.now().isoformat(timespec="seconds"), "label": label}
+    with sqlite3.connect(SQLITE_FILE) as conn:
+        conn.execute(
+            "insert into backups (id, created_at, label, payload) values (?, ?, ?, ?)",
+            (backup["id"], backup["createdAt"], backup["label"], json.dumps(db, ensure_ascii=False)),
+        )
+    return backup
+
+
+def list_backups(limit: int = 20) -> list[dict]:
+    init_storage()
+    with sqlite3.connect(SQLITE_FILE) as conn:
+        rows = conn.execute("select id, created_at, label from backups order by created_at desc limit ?", (limit,)).fetchall()
+    return [{"id": row[0], "createdAt": row[1], "label": row[2]} for row in rows]
 
 
 def seed_db() -> dict:
@@ -694,13 +804,26 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             self.json_response({"ok": True, "users": [public_user(user) for user in db.get("users", [])]})
             return
+        if parsed.path == "/api/history":
+            db = load_db()
+            if not self.require_auth(db):
+                return
+            self.json_response({"ok": True, "history": list_generation_history()})
+            return
+        if parsed.path == "/api/backups":
+            db = load_db()
+            if not self.require_admin(db):
+                return
+            self.json_response({"ok": True, "backups": list_backups()})
+            return
         if parsed.path == "/api/health":
             db = load_db()
             self.json_response(
                 {
                     "ok": True,
                     "app": "Sistema de Horarios Escolares",
-                    "storage": str(DB_FILE),
+                    "storage": str(SQLITE_FILE),
+                    "legacyJson": str(DB_FILE),
                     "updatedAt": db.get("updatedAt"),
                     "counts": {
                         "teachers": len(db.get("teachers", [])),
@@ -777,7 +900,12 @@ class AppHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/generate":
             validation = generate_schedule(db)
             save_db(db)
+            record_generation(db, validation)
             self.json_response({"ok": True, "data": public_db(db), "validation": validation})
+            return
+        if parsed.path == "/api/backup":
+            backup = create_backup(db, body.get("label") or "manual")
+            self.json_response({"ok": True, "backup": backup, "backups": list_backups()})
             return
         if parsed.path == "/api/lesson":
             lesson = body
