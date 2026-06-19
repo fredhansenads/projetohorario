@@ -300,6 +300,16 @@ th {
   font-size: 12px;
 }
 
+.chip.mini {
+  padding: 3px 7px;
+  font-size: 11px;
+}
+
+.chip.danger {
+  background: #fff0f0;
+  color: var(--danger);
+}
+
 .alert {
   border-left: 4px solid var(--warn);
   background: #fff7e8;

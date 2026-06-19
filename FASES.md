@@ -177,7 +177,7 @@ Commit de conclusao: `09ab8c7 Concluir fase 5 de ajuste manual seguro`.
 
 ## Fase 6 - Visualizacoes
 
-Status: pendente.
+Status: concluida.
 
 Objetivo: consolidar visoes por turma, professor, sala, geral, conflitos e pendencias.
 
@@ -198,6 +198,21 @@ Criterios de conclusao:
 - Cada publico consegue consultar seu horario.
 - Coordenacao consegue ver a escola inteira.
 - Conflitos e pendencias aparecem sem precisar procurar manualmente.
+
+Entregas concluidas:
+
+- Grade por turma.
+- Grade por professor.
+- Grade por sala.
+- Grade geral da escola.
+- Busca textual nas grades por turma, professor, sala, disciplina, dia e periodo.
+- Busca textual nos cadastros.
+- Painel de resumo visual com conflitos, pendencias e aulas fixadas.
+- Lista de conflitos visiveis na tela de grade.
+- Lista de cargas pendentes na tela de grade.
+- Indicadores visuais para aulas fixadas, aulas com conflito e aulas em sala especial.
+
+Commit de conclusao: a preencher apos salvar no Git.
 
 ## Fase 7 - Relatorios e exportacao
 

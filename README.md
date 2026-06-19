@@ -52,10 +52,11 @@ Fases concluidas:
 - Fase 3: Regras obrigatorias.
 - Fase 4: Gerador automatico robusto.
 - Fase 5: Ajuste manual seguro.
+- Fase 6: Visualizacoes.
 
 Proxima fase:
 
-- Fase 6: Visualizacoes.
+- Fase 7: Relatorios e exportacao.
 
 ## Validacao tecnica
 

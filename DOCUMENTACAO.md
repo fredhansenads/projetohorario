@@ -21,10 +21,10 @@ Fases concluidas:
 - Fase 3: Regras obrigatorias.
 - Fase 4: Gerador automatico robusto.
 - Fase 5: Ajuste manual seguro.
+- Fase 6: Visualizacoes.
 
 Fases planejadas:
 
-- Fase 6: Visualizacoes.
 - Fase 7: Relatorios e exportacao.
 - Fase 8: Login e seguranca.
 - Fase 9: Banco de dados real.
@@ -155,6 +155,14 @@ Mostra a grade em quatro visoes:
 - geral.
 
 Tambem permite inserir, editar e remover aulas manualmente.
+
+Recursos de visualizacao:
+
+- busca por disciplina, professor, turma, sala, dia e periodo;
+- resumo de conflitos, pendencias e aulas fixadas;
+- destaque para aulas fixadas;
+- destaque para aulas com conflito;
+- indicador de sala especial.
 
 Recursos de ajuste manual seguro:
 
@@ -371,15 +379,14 @@ Commits de referencia:
 - Ainda nao ha banco de dados relacional.
 - A exportacao PDF depende da impressao do navegador.
 - A exportacao Excel ainda nao foi implementada.
-- As visualizacoes ainda serao consolidadas na Fase 6.
+- Os relatorios e exportacoes ainda serao reforcados na Fase 7.
 
 ## 15. Proximas fases
 
-Proxima fase de desenvolvimento: Fase 6 - Visualizacoes.
+Proxima fase de desenvolvimento: Fase 7 - Relatorios e exportacao.
 
 Depois dela:
 
-- Fase 7: Relatorios e exportacao.
 - Fase 8: Login e seguranca.
 - Fase 9: Banco de dados real.
 - Fase 10: Interface profissional.

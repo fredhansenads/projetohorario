@@ -6,6 +6,8 @@ let validation = { conflicts: [], pendencies: [], warnings: [], score: 0 };
 let currentView = "dashboard";
 let gradeMode = "class";
 let selectedLessonId = "";
+let cadastroSearch = "";
+let gradeSearch = "";
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
@@ -171,6 +173,11 @@ function selectedLesson() {
 
 function renderCadastros() {
   $("#cadastros").innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><h3>Consulta de cadastros</h3><span class="chip">${cadastroSearch ? "Filtrado" : "Todos"}</span></div>
+      <label>Buscar<input id="cadastroSearch" value="${escapeHtml(cadastroSearch)}" placeholder="Nome, contato, serie, sala, disciplina..."></label>
+    </div>
+    <div style="height:16px"></div>
     <div class="grid two">
       ${collectionPanel("Escola", "school")}
       ${collectionPanel("Professores", "teachers")}
@@ -180,6 +187,10 @@ function renderCadastros() {
       ${turnosPanel()}
     </div>
   `;
+  $("#cadastroSearch")?.addEventListener("input", (event) => {
+    cadastroSearch = event.target.value;
+    renderCadastros();
+  });
 }
 
 function collectionPanel(title, key) {
@@ -198,7 +209,7 @@ function collectionPanel(title, key) {
     <div class="panel">
       <div class="panel-head"><h3>${title}</h3><button data-add="${key}">Adicionar</button></div>
       <div class="list">
-        ${state[key]
+        ${filteredCollection(key)
           .map(
             (item) => `
             <div class="item">
@@ -209,6 +220,12 @@ function collectionPanel(title, key) {
           .join("") || `<p class="muted">Nenhum cadastro.</p>`}
       </div>
     </div>`;
+}
+
+function filteredCollection(key) {
+  const query = cadastroSearch.trim().toLowerCase();
+  if (!query) return state[key];
+  return state[key].filter((item) => `${item.name || ""} ${describeItem(key, item)}`.toLowerCase().includes(query));
 }
 
 function describeItem(key, item) {
@@ -320,7 +337,11 @@ function renderGrade() {
               .map((item) => `<option value="${item.id}">${item.name}</option>`)
               .join("")}</select></label>`
       }
+      <div style="height:12px"></div>
+      <label>Buscar na grade<input id="gradeSearch" value="${escapeHtml(gradeSearch)}" placeholder="Disciplina, professor, turma, sala, dia..."></label>
     </div>
+    <div style="height:16px"></div>
+    ${visualSummary()}
     <div style="height:16px"></div>
     ${gradeMode === "general" ? generalTimetable() : selected ? entityTimetable(gradeMode, selected) : `<p class="muted">Cadastre itens para montar a grade.</p>`}
   `;
@@ -329,6 +350,29 @@ function renderGrade() {
     filter.value = selected;
     filter.addEventListener("change", renderGrade);
   }
+  $("#gradeSearch")?.addEventListener("input", (event) => {
+    gradeSearch = event.target.value;
+    renderGrade();
+  });
+}
+
+function visualSummary() {
+  return `
+    <div class="grid three">
+      ${metric("Conflitos", validation.conflicts.length)}
+      ${metric("Pendencias", validation.pendencies.length)}
+      ${metric("Fixadas", state.lessons.filter((lesson) => lesson.fixed).length)}
+    </div>
+    <div class="grid two" style="margin-top:16px">
+      <div class="panel">
+        <div class="panel-head"><h3>Conflitos visiveis</h3><span class="chip">${validation.conflicts.length}</span></div>
+        <div class="list">${alertList(validation.conflicts.slice(0, 6), "danger")}</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Cargas pendentes</h3><span class="chip">${validation.pendencies.length}</span></div>
+        <div class="list">${alertList(validation.pendencies.slice(0, 6))}</div>
+      </div>
+    </div>`;
 }
 
 function timetable(classId) {
@@ -346,7 +390,7 @@ function entityTimetable(type, entityId) {
     if (type === "teacher") return item.teacherId === entityId;
     if (type === "room") return item.roomId === entityId;
     return item.classId === entityId;
-  });
+  }).filter(lessonMatchesSearch);
   const days = type === "class" ? entity.days || schoolDays() : schoolDays();
   const periods = type === "class" ? periodsForClass(entity) : activePeriods();
   return `
@@ -381,7 +425,7 @@ function generalTimetable() {
             (period) => `<tr>
               <th>${period}</th>
               ${schoolDays().map((day) => {
-                const lessons = state.lessons.filter((item) => item.day === day && item.period === period);
+                const lessons = state.lessons.filter((item) => item.day === day && item.period === period).filter(lessonMatchesSearch);
                 return `<td>${lessons.length ? lessons.map((lesson) => lessonCard(lesson, "general")).join("") : `<span class="muted">Sem aulas</span>`}</td>`;
               }).join("")}
             </tr>`
@@ -400,12 +444,16 @@ function lessonCard(lesson, context = "class") {
   }[context];
   const conflicts = conflictsForLesson(lesson.id);
   const selected = selectedLessonId === lesson.id;
+  const special = isSpecialRoomLesson(lesson);
   return `
     <div class="lesson ${conflicts.length ? "conflicted" : ""} ${selected ? "selected" : ""}">
       <strong>${nameOf("subjects", lesson.subjectId)}</strong>
       ${lines.map((line, index) => `<span class="${index > 0 ? "muted" : ""}">${line}</span>`).join("")}
-      ${lesson.fixed ? `<span class="fixed-label">Fixada</span>` : ""}
-      ${conflicts.length ? `<span class="conflict-label">${conflicts.length} conflito(s)</span>` : ""}
+      <div class="chips">
+        ${lesson.fixed ? `<span class="chip mini">Fixada</span>` : ""}
+        ${special ? `<span class="chip mini">Sala especial</span>` : ""}
+        ${conflicts.length ? `<span class="chip mini danger">${conflicts.length} conflito(s)</span>` : ""}
+      </div>
       <div class="actions no-print">
         <button data-select-lesson="${lesson.id}">${selected ? "Cancelar" : "Mover"}</button>
         ${selectedLessonId && selectedLessonId !== lesson.id ? `<button data-swap-lesson="${lesson.id}">Trocar</button>` : ""}
@@ -414,6 +462,30 @@ function lessonCard(lesson, context = "class") {
         <button data-remove-lesson="${lesson.id}">Remover</button>
       </div>
     </div>`;
+}
+
+function lessonMatchesSearch(lesson) {
+  const query = gradeSearch.trim().toLowerCase();
+  if (!query) return true;
+  return lessonText(lesson).toLowerCase().includes(query);
+}
+
+function lessonText(lesson) {
+  return [
+    nameOf("classes", lesson.classId),
+    nameOf("subjects", lesson.subjectId),
+    nameOf("teachers", lesson.teacherId),
+    nameOf("rooms", lesson.roomId),
+    lesson.day,
+    lesson.period,
+    lesson.fixed ? "fixada" : "",
+    isSpecialRoomLesson(lesson) ? "sala especial" : "",
+  ].join(" ");
+}
+
+function isSpecialRoomLesson(lesson) {
+  const row = state.curriculum.find((item) => item.id === lesson.curriculumId);
+  return Boolean(row?.specialRoomId || state.subjects.find((subject) => subject.id === lesson.subjectId)?.requiredRoomType);
 }
 
 function renderRelatorios() {
