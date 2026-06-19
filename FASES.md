@@ -173,7 +173,7 @@ Entregas concluidas:
 - Aulas fixadas e aulas com conflito aparecem destacadas na grade.
 - Remocao manual de aula pela interface.
 
-Commit de conclusao: a preencher apos salvar no Git.
+Commit de conclusao: `09ab8c7 Concluir fase 5 de ajuste manual seguro`.
 
 ## Fase 6 - Visualizacoes
 
