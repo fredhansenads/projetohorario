@@ -8,6 +8,8 @@ let gradeMode = "class";
 let selectedLessonId = "";
 let cadastroSearch = "";
 let gradeSearch = "";
+let currentUser = null;
+let sessionToken = "";
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
@@ -16,10 +18,16 @@ const csvToList = (value) => String(value || "").split(",").map((item) => item.t
 const listToCsv = (items) => (items || []).join(", ");
 
 async function api(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (sessionToken) headers.Authorization = `Bearer ${sessionToken}`;
   const response = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers,
   });
+  if (response.status === 401) {
+    showLogin();
+    throw new Error("Login necessario.");
+  }
   if (!response.ok) throw new Error(await response.text());
   return response.json();
 }
@@ -29,6 +37,49 @@ async function load() {
   state = payload.data;
   validation = payload.validation;
   render();
+}
+
+async function bootstrap() {
+  const session = await api("/api/session");
+  if (!session.authenticated) {
+    showLogin();
+    return;
+  }
+  currentUser = session.user;
+  hideLogin();
+  await load();
+}
+
+function showLogin(message = "") {
+  $("#loginScreen").classList.remove("hidden");
+  $("#loginError").textContent = message;
+}
+
+function hideLogin() {
+  $("#loginScreen").classList.add("hidden");
+}
+
+async function login(event) {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const response = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+  const payload = await response.json();
+  if (!response.ok) {
+    showLogin(payload.message || "Falha no login.");
+    return;
+  }
+  currentUser = payload.user;
+  sessionToken = payload.sessionToken || "";
+  hideLogin();
+  await load();
+}
+
+async function logout() {
+  await api("/api/logout", { method: "POST", body: "{}" });
+  currentUser = null;
+  sessionToken = "";
+  state = null;
+  showLogin();
 }
 
 async function save() {
@@ -76,6 +127,7 @@ function render() {
   $("#schoolName").textContent = state.school.name || "Escola sem nome";
   $("#schoolYear").textContent = `Ano letivo ${state.school.year || ""}`;
   $("#score").textContent = validation.score ?? 0;
+  $("#userLabel").textContent = currentUser ? `${currentUser.name} (${currentUser.role})` : "";
   renderDashboard();
   renderCadastros();
   renderMatriz();
@@ -185,12 +237,31 @@ function renderCadastros() {
       ${collectionPanel("Disciplinas", "subjects")}
       ${collectionPanel("Salas e ambientes", "rooms")}
       ${turnosPanel()}
+      ${usersPanel()}
     </div>
   `;
   $("#cadastroSearch")?.addEventListener("input", (event) => {
     cadastroSearch = event.target.value;
     renderCadastros();
   });
+}
+
+function usersPanel() {
+  return `
+    <div class="panel">
+      <div class="panel-head"><h3>Usuarios</h3><button data-add-user>Adicionar</button></div>
+      <div class="list">
+        ${(state.users || [])
+          .map(
+            (user) => `
+            <div class="item">
+              <div><strong>${user.name}</strong><p class="muted">${user.username} | ${user.role} | ${user.active ? "ativo" : "inativo"}</p></div>
+              <div class="actions"><button data-edit-user="${user.id}">Editar</button><button data-delete-user="${user.id}">Remover</button></div>
+            </div>`
+          )
+          .join("") || `<p class="muted">Nenhum usuario.</p>`}
+      </div>
+    </div>`;
 }
 
 function collectionPanel(title, key) {
@@ -715,6 +786,26 @@ function editCurriculum(row = null) {
   );
 }
 
+function editUser(user = {}) {
+  openModal(
+    user.id ? "Editar usuario" : "Novo usuario",
+    [
+      input("name", "Nome", user.name || ""),
+      input("username", "Usuario", user.username || ""),
+      select("role", "Perfil", [{ value: "admin", label: "Administrador" }, { value: "viewer", label: "Consulta" }], user.role || "admin"),
+      checkbox("active", "Ativo", user.active !== false),
+      input("password", user.id ? "Nova senha (opcional)" : "Senha", "", "password"),
+    ],
+    async (data) => {
+      const payload = { ...user, ...data, active: data.active === "true" };
+      const response = await api("/api/users", { method: "POST", body: JSON.stringify(payload) });
+      state = response.data;
+      validation = response.validation;
+      render();
+    }
+  );
+}
+
 function editLesson(lesson = {}) {
   openModal(
     lesson.id ? "Editar aula" : "Inserir aula",
@@ -929,6 +1020,15 @@ document.addEventListener("click", async (event) => {
   }
   if (target.dataset.editSchool !== undefined) editSchool();
   if (target.dataset.editShifts !== undefined) editShifts();
+  if (target.dataset.addUser !== undefined) editUser();
+  if (target.dataset.editUser) editUser((state.users || []).find((user) => user.id === target.dataset.editUser));
+  if (target.dataset.deleteUser) {
+    if (!confirm("Remover este usuario?")) return;
+    const response = await api(`/api/users?id=${target.dataset.deleteUser}`, { method: "DELETE" });
+    state = response.data;
+    validation = response.validation;
+    render();
+  }
   if (target.dataset.addCurriculum !== undefined) editCurriculum();
   if (target.dataset.editCurriculum) editCurriculum(state.curriculum.find((item) => item.id === target.dataset.editCurriculum));
   if (target.dataset.avail) {
@@ -961,12 +1061,14 @@ document.addEventListener("click", async (event) => {
 $("#saveBtn").addEventListener("click", save);
 $("#generateBtn").addEventListener("click", generate);
 $("#resetBtn").addEventListener("click", resetExample);
+$("#logoutBtn").addEventListener("click", logout);
+$("#loginForm").addEventListener("submit", login);
 $("#printBtn").addEventListener("click", () => {
   currentView = "relatorios";
   $$(".view").forEach((view) => view.classList.toggle("active", view.id === currentView));
   window.print();
 });
 
-load().catch((error) => {
+bootstrap().catch((error) => {
   document.body.innerHTML = `<main class="view active"><div class="panel"><h1>Erro ao carregar</h1><pre>${error.message}</pre></div></main>`;
 });

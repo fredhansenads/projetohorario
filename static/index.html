@@ -7,6 +7,16 @@
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
+    <section id="loginScreen" class="login-screen">
+      <form id="loginForm" class="login-panel">
+        <p class="eyebrow">Acesso administrativo</p>
+        <h1>Horario Escolar</h1>
+        <label>Usuario<input name="username" value="admin" autocomplete="username"></label>
+        <label>Senha<input name="password" type="password" autocomplete="current-password"></label>
+        <p id="loginError" class="login-error"></p>
+        <button class="primary" type="submit">Entrar</button>
+      </form>
+    </section>
     <aside class="sidebar">
       <div>
         <p class="eyebrow">Gestao escolar</p>
@@ -33,10 +43,12 @@
           <h2 id="schoolName">Carregando...</h2>
         </div>
         <div class="actions">
+          <span id="userLabel" class="user-label"></span>
           <button id="generateBtn" class="primary">Gerar horario</button>
           <button id="saveBtn">Salvar</button>
           <button id="resetBtn">Restaurar exemplo</button>
           <button id="printBtn">Imprimir PDF</button>
+          <button id="logoutBtn">Sair</button>
         </div>
       </header>
 

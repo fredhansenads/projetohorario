@@ -6,7 +6,10 @@ import os
 import random
 import sys
 import csv
+import hashlib
+import hmac
 from io import StringIO
+import secrets
 import uuid
 from copy import deepcopy
 from datetime import datetime
@@ -19,6 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DB_FILE = DATA_DIR / "horario-db.json"
 STATIC_DIR = BASE_DIR / "static"
+SESSIONS: dict[str, str] = {}
 
 DAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta"]
 DEFAULT_PERIODS = ["1a aula", "2a aula", "3a aula", "4a aula", "5a aula"]
@@ -51,6 +55,7 @@ def empty_db() -> dict:
         "curriculum": [],
         "lessons": [],
         "fixedLessons": [],
+        "users": [],
         "updatedAt": datetime.now().isoformat(timespec="seconds"),
     }
 
@@ -60,7 +65,11 @@ def load_db() -> dict:
     if not DB_FILE.exists():
         save_db(seed_db())
     with DB_FILE.open("r", encoding="utf-8") as file:
-        return json.load(file)
+        db = json.load(file)
+    changed = ensure_security(db)
+    if changed:
+        save_db(db)
+    return db
 
 
 def save_db(db: dict) -> None:
@@ -72,6 +81,7 @@ def save_db(db: dict) -> None:
 
 def seed_db() -> dict:
     db = empty_db()
+    ensure_security(db)
     math = {"id": new_id(), "name": "Matematica", "weeklyLoad": 5, "allowDouble": True, "requireDouble": False, "avoidLast": False, "requiredRoomType": ""}
     portuguese = {"id": new_id(), "name": "Portugues", "weeklyLoad": 5, "allowDouble": True, "requireDouble": False, "avoidLast": False, "requiredRoomType": ""}
     science = {"id": new_id(), "name": "Ciencias", "weeklyLoad": 3, "allowDouble": True, "requireDouble": True, "avoidLast": False, "requiredRoomType": "Laboratorio"}
@@ -102,6 +112,55 @@ def seed_db() -> dict:
             ]
         )
     return db
+
+
+def password_hash(password: str, salt: str) -> str:
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 120_000)
+    return digest.hex()
+
+
+def make_user(username: str, name: str, password: str, role: str = "admin") -> dict:
+    salt = secrets.token_hex(16)
+    return {
+        "id": new_id(),
+        "username": username,
+        "name": name,
+        "role": role,
+        "active": True,
+        "salt": salt,
+        "passwordHash": password_hash(password, salt),
+    }
+
+
+def ensure_security(db: dict) -> bool:
+    changed = False
+    if "users" not in db:
+        db["users"] = []
+        changed = True
+    if not db["users"]:
+        db["users"].append(make_user("admin", "Administrador", "admin123"))
+        changed = True
+    return changed
+
+
+def public_user(user: dict) -> dict:
+    return {key: user.get(key) for key in ("id", "username", "name", "role", "active")}
+
+
+def public_db(db: dict) -> dict:
+    data = deepcopy(db)
+    data["users"] = [public_user(user) for user in db.get("users", [])]
+    return data
+
+
+def verify_user(db: dict, username: str, password: str) -> dict | None:
+    for user in db.get("users", []):
+        if user.get("username") == username and user.get("active", True):
+            expected = user.get("passwordHash", "")
+            actual = password_hash(password, user.get("salt", ""))
+            if hmac.compare_digest(expected, actual):
+                return user
+    return None
 
 
 def curriculum_row(class_id: str, subject_id: str, teacher_id: str, weekly: int, double: bool, room_id: str) -> dict:
@@ -585,11 +644,55 @@ def teacher_windows(db: dict, lessons: list[dict]) -> int:
 
 
 class AppHandler(BaseHTTPRequestHandler):
+    def current_user(self, db: dict) -> dict | None:
+        auth = self.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            user_id = SESSIONS.get(auth.replace("Bearer ", "", 1).strip())
+            return next((user for user in db.get("users", []) if user.get("id") == user_id and user.get("active", True)), None)
+        cookie = self.headers.get("Cookie", "")
+        session_id = ""
+        for part in cookie.split(";"):
+            name, _, value = part.strip().partition("=")
+            if name == "horario_session":
+                session_id = value
+                break
+        user_id = SESSIONS.get(session_id)
+        return next((user for user in db.get("users", []) if user.get("id") == user_id and user.get("active", True)), None)
+
+    def require_auth(self, db: dict) -> dict | None:
+        user = self.current_user(db)
+        if not user:
+            self.json_response({"ok": False, "authenticated": False, "message": "Login necessario."}, status=401)
+            return None
+        return user
+
+    def require_admin(self, db: dict) -> dict | None:
+        user = self.require_auth(db)
+        if not user:
+            return None
+        if user.get("role") != "admin":
+            self.json_response({"ok": False, "message": "Permissao de administrador necessaria."}, status=403)
+            return None
+        return user
+
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/session":
+            db = load_db()
+            user = self.current_user(db)
+            self.json_response({"authenticated": bool(user), "user": public_user(user) if user else None})
+            return
         if parsed.path == "/api/state":
             db = load_db()
-            self.json_response({"data": db, "validation": validate_schedule(db)})
+            if not self.require_auth(db):
+                return
+            self.json_response({"data": public_db(db), "validation": validate_schedule(db)})
+            return
+        if parsed.path == "/api/users":
+            db = load_db()
+            if not self.require_admin(db):
+                return
+            self.json_response({"ok": True, "users": [public_user(user) for user in db.get("users", [])]})
             return
         if parsed.path == "/api/health":
             db = load_db()
@@ -610,7 +713,10 @@ class AppHandler(BaseHTTPRequestHandler):
             )
             return
         if parsed.path == "/api/export":
-            self.export_response(load_db(), parsed.query)
+            db = load_db()
+            if not self.require_auth(db):
+                return
+            self.export_response(db, parsed.query)
             return
         self.serve_static(parsed.path)
 
@@ -618,14 +724,60 @@ class AppHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         body = self.read_json()
         db = load_db()
+        if parsed.path == "/api/login":
+            user = verify_user(db, body.get("username", ""), body.get("password", ""))
+            if not user:
+                self.json_response({"ok": False, "message": "Usuario ou senha invalidos."}, status=401)
+                return
+            session_id = secrets.token_urlsafe(32)
+            SESSIONS[session_id] = user["id"]
+            self.json_response({"ok": True, "sessionToken": session_id, "user": public_user(user)}, headers={"Set-Cookie": f"horario_session={session_id}; Path=/; HttpOnly; SameSite=Lax"})
+            return
+        if parsed.path == "/api/logout":
+            cookie = self.headers.get("Cookie", "")
+            for part in cookie.split(";"):
+                name, _, value = part.strip().partition("=")
+                if name == "horario_session":
+                    SESSIONS.pop(value, None)
+            self.json_response({"ok": True}, headers={"Set-Cookie": "horario_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax"})
+            return
+        user = self.require_admin(db)
+        if not user:
+            return
         if parsed.path == "/api/state":
+            body["users"] = db.get("users", [])
             save_db(body)
-            self.json_response({"ok": True, "data": body, "validation": validate_schedule(body)})
+            self.json_response({"ok": True, "data": public_db(body), "validation": validate_schedule(body)})
+            return
+        if parsed.path == "/api/users":
+            incoming = body
+            if not incoming.get("username") or not incoming.get("name"):
+                self.json_response({"ok": False, "message": "Nome e usuario sao obrigatorios."}, status=400)
+                return
+            users = db.get("users", [])
+            existing = next((item for item in users if item.get("id") == incoming.get("id")), None)
+            duplicate = next((item for item in users if item.get("username") == incoming.get("username") and item.get("id") != incoming.get("id")), None)
+            if duplicate:
+                self.json_response({"ok": False, "message": "Usuario ja existe."}, status=400)
+                return
+            if existing:
+                existing["username"] = incoming.get("username")
+                existing["name"] = incoming.get("name")
+                existing["role"] = incoming.get("role", "admin")
+                existing["active"] = bool(incoming.get("active", True))
+                if incoming.get("password"):
+                    existing["salt"] = secrets.token_hex(16)
+                    existing["passwordHash"] = password_hash(incoming["password"], existing["salt"])
+            else:
+                users.append(make_user(incoming["username"], incoming["name"], incoming.get("password") or "admin123", incoming.get("role", "admin")))
+            db["users"] = users
+            save_db(db)
+            self.json_response({"ok": True, "data": public_db(db), "validation": validate_schedule(db), "users": [public_user(user) for user in users]})
             return
         if parsed.path == "/api/generate":
             validation = generate_schedule(db)
             save_db(db)
-            self.json_response({"ok": True, "data": db, "validation": validation})
+            self.json_response({"ok": True, "data": public_db(db), "validation": validation})
             return
         if parsed.path == "/api/lesson":
             lesson = body
@@ -636,11 +788,11 @@ class AppHandler(BaseHTTPRequestHandler):
             if conflicts and not allow_conflicts:
                 preview_db = deepcopy(db)
                 preview_db["lessons"] = existing_lessons + [lesson]
-                self.json_response({"ok": False, "saved": False, "conflicts": conflicts, "data": db, "validation": validate_schedule(preview_db)})
+                self.json_response({"ok": False, "saved": False, "conflicts": conflicts, "data": public_db(db), "validation": validate_schedule(preview_db)})
                 return
             db["lessons"] = existing_lessons + [lesson]
             save_db(db)
-            self.json_response({"ok": not conflicts, "saved": True, "conflicts": conflicts, "data": db, "validation": validate_schedule(db)})
+            self.json_response({"ok": not conflicts, "saved": True, "conflicts": conflicts, "data": public_db(db), "validation": validate_schedule(db)})
             return
         if parsed.path == "/api/lesson/fixed":
             lesson_id = body.get("id")
@@ -649,9 +801,9 @@ class AppHandler(BaseHTTPRequestHandler):
                 if lesson.get("id") == lesson_id:
                     lesson["fixed"] = fixed
                     save_db(db)
-                    self.json_response({"ok": True, "data": db, "validation": validate_schedule(db)})
+                    self.json_response({"ok": True, "data": public_db(db), "validation": validate_schedule(db)})
                     return
-            self.json_response({"ok": False, "message": "Aula nao encontrada.", "data": db, "validation": validate_schedule(db)}, status=404)
+            self.json_response({"ok": False, "message": "Aula nao encontrada.", "data": public_db(db), "validation": validate_schedule(db)}, status=404)
             return
         if parsed.path == "/api/lesson/swap":
             first_id = body.get("firstId")
@@ -660,7 +812,7 @@ class AppHandler(BaseHTTPRequestHandler):
             first = next((item for item in db.get("lessons", []) if item.get("id") == first_id), None)
             second = next((item for item in db.get("lessons", []) if item.get("id") == second_id), None)
             if not first or not second:
-                self.json_response({"ok": False, "message": "Aulas para troca nao encontradas.", "data": db, "validation": validate_schedule(db)}, status=404)
+                self.json_response({"ok": False, "message": "Aulas para troca nao encontradas.", "data": public_db(db), "validation": validate_schedule(db)}, status=404)
                 return
             swapped = deepcopy(db.get("lessons", []))
             first_new = next(item for item in swapped if item.get("id") == first_id)
@@ -676,28 +828,43 @@ class AppHandler(BaseHTTPRequestHandler):
             validation = validate_schedule(preview_db)
             conflicts = [item["message"] for item in validation.get("conflicts", []) if item.get("lessonId") in (first_id, second_id)]
             if conflicts and not allow_conflicts:
-                self.json_response({"ok": False, "saved": False, "conflicts": sorted(set(conflicts)), "data": db, "validation": validation})
+                self.json_response({"ok": False, "saved": False, "conflicts": sorted(set(conflicts)), "data": public_db(db), "validation": validation})
                 return
             db["lessons"] = swapped
             save_db(db)
-            self.json_response({"ok": not conflicts, "saved": True, "conflicts": sorted(set(conflicts)), "data": db, "validation": validate_schedule(db)})
+            self.json_response({"ok": not conflicts, "saved": True, "conflicts": sorted(set(conflicts)), "data": public_db(db), "validation": validate_schedule(db)})
             return
         if parsed.path == "/api/reset":
             db = seed_db()
             save_db(db)
-            self.json_response({"ok": True, "data": db, "validation": validate_schedule(db)})
+            self.json_response({"ok": True, "data": public_db(db), "validation": validate_schedule(db)})
             return
         self.send_error(404, "Rota nao encontrada")
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
         query = parse_qs(parsed.query)
+        db = load_db()
+        if not self.require_admin(db):
+            return
         if parsed.path == "/api/lesson":
-            db = load_db()
             lesson_id = query.get("id", [""])[0]
             db["lessons"] = [item for item in db.get("lessons", []) if item["id"] != lesson_id]
             save_db(db)
-            self.json_response({"ok": True, "data": db, "validation": validate_schedule(db)})
+            self.json_response({"ok": True, "data": public_db(db), "validation": validate_schedule(db)})
+            return
+        if parsed.path == "/api/users":
+            user_id = query.get("id", [""])[0]
+            if self.current_user(db) and self.current_user(db).get("id") == user_id:
+                self.json_response({"ok": False, "message": "Nao e possivel remover o usuario logado."}, status=400)
+                return
+            remaining = [item for item in db.get("users", []) if item.get("id") != user_id]
+            if not remaining:
+                self.json_response({"ok": False, "message": "O sistema precisa de pelo menos um usuario."}, status=400)
+                return
+            db["users"] = remaining
+            save_db(db)
+            self.json_response({"ok": True, "data": public_db(db), "validation": validate_schedule(db)})
             return
         self.send_error(404, "Rota nao encontrada")
 
@@ -707,10 +874,12 @@ class AppHandler(BaseHTTPRequestHandler):
             return {}
         return json.loads(self.rfile.read(length).decode("utf-8"))
 
-    def json_response(self, payload: dict, status: int = 200) -> None:
+    def json_response(self, payload: dict, status: int = 200, headers: dict | None = None) -> None:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        for key, value in (headers or {}).items():
+            self.send_header(key, value)
         self.send_header("Content-Length", str(len(data)))
         self.end_headers()
         self.wfile.write(data)

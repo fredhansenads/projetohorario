@@ -23,10 +23,10 @@ Fases concluidas:
 - Fase 5: Ajuste manual seguro.
 - Fase 6: Visualizacoes.
 - Fase 7: Relatorios e exportacao.
+- Fase 8: Login e seguranca.
 
 Fases planejadas:
 
-- Fase 8: Login e seguranca.
 - Fase 9: Banco de dados real.
 - Fase 10: Interface profissional.
 - Fase 11: Testes e validacao.
@@ -72,6 +72,13 @@ No Windows, tambem e possivel executar:
 
 ```powershell
 iniciar.bat
+```
+
+Primeiro acesso:
+
+```text
+Usuario: admin
+Senha: admin123
 ```
 
 ## 5. Estrutura de arquivos
@@ -304,8 +311,14 @@ O painel mostra a tentativa escolhida, pontuacao, quantidade de aulas fixadas, j
 Rotas principais:
 
 ```text
+GET    /api/session
+POST   /api/login
+POST   /api/logout
 GET    /api/state
 POST   /api/state
+GET    /api/users
+POST   /api/users
+DELETE /api/users?id=<id>
 GET    /api/health
 POST   /api/generate
 POST   /api/lesson
@@ -316,7 +329,11 @@ GET    /api/export
 
 Descricao:
 
+- `/api/session`: consulta usuario logado.
+- `/api/login`: inicia sessao.
+- `/api/logout`: encerra sessao.
 - `/api/state`: carrega ou salva o estado completo.
+- `/api/users`: lista, cria, atualiza ou remove usuarios.
 - `/api/health`: retorna status da aplicacao.
 - `/api/generate`: gera a grade automaticamente.
 - `/api/lesson`: insere ou altera uma aula.
@@ -395,18 +412,16 @@ Commits de referencia:
 
 ## 14. Limitacoes conhecidas
 
-- Ainda nao ha login.
 - Ainda nao ha banco de dados relacional.
 - A exportacao PDF depende da impressao do navegador.
 - A exportacao Excel nativa ainda nao foi implementada; a versao atual oferece CSV.
 
 ## 15. Proximas fases
 
-Proxima fase de desenvolvimento: Fase 8 - Login e seguranca.
+Proxima fase de desenvolvimento: Fase 9 - Banco de dados real.
 
 Depois dela:
 
-- Fase 9: Banco de dados real.
 - Fase 10: Interface profissional.
 - Fase 11: Testes e validacao.
 - Fase 12: Implantacao.

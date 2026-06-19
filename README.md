@@ -54,10 +54,18 @@ Fases concluidas:
 - Fase 5: Ajuste manual seguro.
 - Fase 6: Visualizacoes.
 - Fase 7: Relatorios e exportacao.
+- Fase 8: Login e seguranca.
 
 Proxima fase:
 
-- Fase 8: Login e seguranca.
+- Fase 9: Banco de dados real.
+
+Primeiro acesso:
+
+```text
+Usuario: admin
+Senha: admin123
+```
 
 ## Validacao tecnica
 

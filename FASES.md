@@ -256,7 +256,7 @@ Commit de conclusao: `f4ac667 Concluir fase 7 de relatorios e exportacao`.
 
 ## Fase 8 - Login e seguranca
 
-Status: pendente.
+Status: concluida.
 
 Objetivo: proteger o sistema e separar acesso administrativo.
 
@@ -275,6 +275,26 @@ Criterios de conclusao:
 - Sistema nao permite alteracoes sem login.
 - Usuario administrador consegue gerenciar acesso.
 - Dados sensiveis nao ficam expostos na interface.
+
+Entregas concluidas:
+
+- Usuario administrador padrao criado automaticamente.
+- Senhas armazenadas com salt e hash PBKDF2.
+- Login via `/api/login`.
+- Logout via `/api/logout`.
+- Sessao autenticada por cookie HTTP-only.
+- API de estado e exportacao protegida por login.
+- Operacoes de alteracao protegidas por permissao de administrador.
+- Cadastro basico de usuarios pela interface.
+- Perfis `admin` e `viewer`.
+- Hashes e salts de senha nao sao enviados para o navegador.
+
+Usuario inicial:
+
+- Usuario: `admin`
+- Senha: `admin123`
+
+Commit de conclusao: a preencher apos salvar no Git.
 
 ## Fase 9 - Banco de dados real
 
