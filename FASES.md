@@ -140,7 +140,7 @@ Commit de conclusao: `20c4540 Concluir fase 4 do gerador automatico`.
 
 ## Fase 5 - Ajuste manual seguro
 
-Status: pendente.
+Status: concluida.
 
 Objetivo: tornar a edicao manual mais clara, validada e controlada.
 
@@ -160,6 +160,20 @@ Criterios de conclusao:
 - Usuario consegue corrigir a grade sem editar JSON.
 - Conflitos ficam visiveis no momento do ajuste.
 - Aulas fixadas permanecem apos nova geracao.
+
+Entregas concluidas:
+
+- Insercao manual validada no backend antes de salvar.
+- Edicao manual validada no backend antes de salvar.
+- Confirmacao explicita para salvar alteracoes que geram conflito.
+- Botao para fixar e desfixar aulas.
+- Aulas fixadas preservadas pelo gerador automatico.
+- Selecao de aula para mover para outro horario.
+- Troca de horario entre duas aulas selecionadas, com validacao.
+- Aulas fixadas e aulas com conflito aparecem destacadas na grade.
+- Remocao manual de aula pela interface.
+
+Commit de conclusao: a preencher apos salvar no Git.
 
 ## Fase 6 - Visualizacoes
 

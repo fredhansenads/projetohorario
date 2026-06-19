@@ -628,11 +628,57 @@ class AppHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/lesson":
             lesson = body
             lesson["id"] = lesson.get("id") or new_id()
-            db["lessons"] = [item for item in db.get("lessons", []) if item["id"] != lesson["id"]]
-            conflicts = hard_conflicts(db, lesson, db["lessons"])
-            db["lessons"].append(lesson)
+            allow_conflicts = bool(lesson.pop("allowConflicts", False))
+            existing_lessons = [item for item in db.get("lessons", []) if item["id"] != lesson["id"]]
+            conflicts = hard_conflicts(db, lesson, existing_lessons)
+            if conflicts and not allow_conflicts:
+                preview_db = deepcopy(db)
+                preview_db["lessons"] = existing_lessons + [lesson]
+                self.json_response({"ok": False, "saved": False, "conflicts": conflicts, "data": db, "validation": validate_schedule(preview_db)})
+                return
+            db["lessons"] = existing_lessons + [lesson]
             save_db(db)
-            self.json_response({"ok": not conflicts, "conflicts": conflicts, "data": db, "validation": validate_schedule(db)})
+            self.json_response({"ok": not conflicts, "saved": True, "conflicts": conflicts, "data": db, "validation": validate_schedule(db)})
+            return
+        if parsed.path == "/api/lesson/fixed":
+            lesson_id = body.get("id")
+            fixed = bool(body.get("fixed"))
+            for lesson in db.get("lessons", []):
+                if lesson.get("id") == lesson_id:
+                    lesson["fixed"] = fixed
+                    save_db(db)
+                    self.json_response({"ok": True, "data": db, "validation": validate_schedule(db)})
+                    return
+            self.json_response({"ok": False, "message": "Aula nao encontrada.", "data": db, "validation": validate_schedule(db)}, status=404)
+            return
+        if parsed.path == "/api/lesson/swap":
+            first_id = body.get("firstId")
+            second_id = body.get("secondId")
+            allow_conflicts = bool(body.get("allowConflicts", False))
+            first = next((item for item in db.get("lessons", []) if item.get("id") == first_id), None)
+            second = next((item for item in db.get("lessons", []) if item.get("id") == second_id), None)
+            if not first or not second:
+                self.json_response({"ok": False, "message": "Aulas para troca nao encontradas.", "data": db, "validation": validate_schedule(db)}, status=404)
+                return
+            swapped = deepcopy(db.get("lessons", []))
+            first_new = next(item for item in swapped if item.get("id") == first_id)
+            second_new = next(item for item in swapped if item.get("id") == second_id)
+            first_slot = (first_new.get("day"), first_new.get("period"))
+            second_slot = (second_new.get("day"), second_new.get("period"))
+            first_new["day"], first_new["period"] = second_slot
+            second_new["day"], second_new["period"] = first_slot
+            first_new["fixed"] = True
+            second_new["fixed"] = True
+            preview_db = deepcopy(db)
+            preview_db["lessons"] = swapped
+            validation = validate_schedule(preview_db)
+            conflicts = [item["message"] for item in validation.get("conflicts", []) if item.get("lessonId") in (first_id, second_id)]
+            if conflicts and not allow_conflicts:
+                self.json_response({"ok": False, "saved": False, "conflicts": sorted(set(conflicts)), "data": db, "validation": validation})
+                return
+            db["lessons"] = swapped
+            save_db(db)
+            self.json_response({"ok": not conflicts, "saved": True, "conflicts": sorted(set(conflicts)), "data": db, "validation": validate_schedule(db)})
             return
         if parsed.path == "/api/reset":
             db = seed_db()

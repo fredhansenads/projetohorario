@@ -5,6 +5,7 @@ let state = null;
 let validation = { conflicts: [], pendencies: [], warnings: [], score: 0 };
 let currentView = "dashboard";
 let gradeMode = "class";
+let selectedLessonId = "";
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => Array.from(parent.querySelectorAll(selector));
@@ -162,6 +163,10 @@ function alertList(items, type = "") {
 
 function conflictsForLesson(lessonId) {
   return validation.conflicts.filter((item) => item.lessonId === lessonId);
+}
+
+function selectedLesson() {
+  return state.lessons.find((lesson) => lesson.id === selectedLessonId);
 }
 
 function renderCadastros() {
@@ -355,7 +360,7 @@ function entityTimetable(type, entityId) {
               ${days
                 .map((day) => {
                   const lesson = lessons.find((item) => item.day === day && item.period === period);
-                  const emptySlot = type === "class" ? `<button data-slot="${entityId}:${day}:${period}">Livre</button>` : `<span class="muted">Livre</span>`;
+                  const emptySlot = type === "class" ? `<button data-slot="${entityId}:${day}:${period}">${selectedLessonId ? "Mover aqui" : "Livre"}</button>` : `<span class="muted">Livre</span>`;
                   return `<td>${lesson ? lessonCard(lesson, type) : emptySlot}</td>`;
                 })
                 .join("")}
@@ -394,12 +399,20 @@ function lessonCard(lesson, context = "class") {
     general: [nameOf("classes", lesson.classId), nameOf("teachers", lesson.teacherId), nameOf("rooms", lesson.roomId)],
   }[context];
   const conflicts = conflictsForLesson(lesson.id);
+  const selected = selectedLessonId === lesson.id;
   return `
-    <div class="lesson ${conflicts.length ? "conflicted" : ""}">
+    <div class="lesson ${conflicts.length ? "conflicted" : ""} ${selected ? "selected" : ""}">
       <strong>${nameOf("subjects", lesson.subjectId)}</strong>
       ${lines.map((line, index) => `<span class="${index > 0 ? "muted" : ""}">${line}</span>`).join("")}
+      ${lesson.fixed ? `<span class="fixed-label">Fixada</span>` : ""}
       ${conflicts.length ? `<span class="conflict-label">${conflicts.length} conflito(s)</span>` : ""}
-      <div class="actions no-print"><button data-edit-lesson="${lesson.id}">Editar</button><button data-remove-lesson="${lesson.id}">Remover</button></div>
+      <div class="actions no-print">
+        <button data-select-lesson="${lesson.id}">${selected ? "Cancelar" : "Mover"}</button>
+        ${selectedLessonId && selectedLessonId !== lesson.id ? `<button data-swap-lesson="${lesson.id}">Trocar</button>` : ""}
+        <button data-toggle-fixed="${lesson.id}">${lesson.fixed ? "Desfixar" : "Fixar"}</button>
+        <button data-edit-lesson="${lesson.id}">Editar</button>
+        <button data-remove-lesson="${lesson.id}">Remover</button>
+      </div>
     </div>`;
 }
 
@@ -619,12 +632,65 @@ function editLesson(lesson = {}) {
         (entry) => entry.classId === data.classId && entry.subjectId === data.subjectId && entry.teacherId === data.teacherId
       );
       const payload = { ...lesson, ...data, id: lesson.id || id(), curriculumId: lesson.curriculumId || row?.id || "", fixed: true };
-      const response = await api("/api/lesson", { method: "POST", body: JSON.stringify(payload) });
-      state = response.data;
-      validation = response.validation;
-      if (response.conflicts?.length) alert(`Conflitos encontrados:\n${response.conflicts.join("\n")}`);
+      await saveLessonWithConfirmation(payload);
     }
   );
+}
+
+async function saveLessonWithConfirmation(payload) {
+  let response = await api("/api/lesson", { method: "POST", body: JSON.stringify(payload) });
+  if (!response.saved && response.conflicts?.length) {
+    const confirmed = confirm(`Esta alteracao gera conflito:\n${response.conflicts.join("\n")}\n\nSalvar mesmo assim?`);
+    if (!confirmed) {
+      validation = response.validation;
+      render();
+      return response;
+    }
+    response = await api("/api/lesson", { method: "POST", body: JSON.stringify({ ...payload, allowConflicts: true }) });
+  }
+  state = response.data;
+  validation = response.validation;
+  selectedLessonId = "";
+  render();
+  return response;
+}
+
+async function toggleFixedLesson(lessonId) {
+  const lesson = state.lessons.find((item) => item.id === lessonId);
+  if (!lesson) return;
+  const response = await api("/api/lesson/fixed", { method: "POST", body: JSON.stringify({ id: lessonId, fixed: !lesson.fixed }) });
+  state = response.data;
+  validation = response.validation;
+  render();
+}
+
+async function moveSelectedLesson(classId, day, period) {
+  const lesson = selectedLesson();
+  if (!lesson) {
+    editLesson({ classId, day, period });
+    return;
+  }
+  const classChanged = lesson.classId !== classId;
+  if (classChanged && !confirm("A aula selecionada pertence a outra turma. Mover mesmo assim?")) return;
+  await saveLessonWithConfirmation({ ...lesson, classId, day, period, fixed: true });
+}
+
+async function swapSelectedLesson(secondId) {
+  if (!selectedLessonId || selectedLessonId === secondId) return;
+  let response = await api("/api/lesson/swap", { method: "POST", body: JSON.stringify({ firstId: selectedLessonId, secondId }) });
+  if (!response.saved && response.conflicts?.length) {
+    const confirmed = confirm(`A troca gera conflito:\n${response.conflicts.join("\n")}\n\nSalvar mesmo assim?`);
+    if (!confirmed) {
+      validation = response.validation;
+      render();
+      return;
+    }
+    response = await api("/api/lesson/swap", { method: "POST", body: JSON.stringify({ firstId: selectedLessonId, secondId, allowConflicts: true }) });
+  }
+  state = response.data;
+  validation = response.validation;
+  selectedLessonId = "";
+  render();
 }
 
 function optionList(items) {
@@ -775,13 +841,20 @@ document.addEventListener("click", async (event) => {
   if (target.dataset.addLesson !== undefined) editLesson();
   if (target.dataset.slot) {
     const [classId, day, period] = target.dataset.slot.split(":");
-    editLesson({ classId, day, period });
+    moveSelectedLesson(classId, day, period);
   }
+  if (target.dataset.selectLesson) {
+    selectedLessonId = selectedLessonId === target.dataset.selectLesson ? "" : target.dataset.selectLesson;
+    render();
+  }
+  if (target.dataset.swapLesson) swapSelectedLesson(target.dataset.swapLesson);
+  if (target.dataset.toggleFixed) toggleFixedLesson(target.dataset.toggleFixed);
   if (target.dataset.editLesson) editLesson(state.lessons.find((item) => item.id === target.dataset.editLesson));
   if (target.dataset.removeLesson) {
     const payload = await api(`/api/lesson?id=${target.dataset.removeLesson}`, { method: "DELETE" });
     state = payload.data;
     validation = payload.validation;
+    if (selectedLessonId === target.dataset.removeLesson) selectedLessonId = "";
     render();
   }
 });

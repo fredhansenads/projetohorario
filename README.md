@@ -51,10 +51,11 @@ Fases concluidas:
 - Fase 2: Cadastros completos.
 - Fase 3: Regras obrigatorias.
 - Fase 4: Gerador automatico robusto.
+- Fase 5: Ajuste manual seguro.
 
 Proxima fase:
 
-- Fase 5: Ajuste manual seguro.
+- Fase 6: Visualizacoes.
 
 ## Validacao tecnica
 

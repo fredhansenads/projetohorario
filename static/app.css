@@ -250,12 +250,23 @@ th {
   background: #fff7f7;
 }
 
+.lesson.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .lesson strong {
   color: var(--accent-dark);
 }
 
 .conflict-label {
   color: var(--danger);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fixed-label {
+  color: var(--accent-dark);
   font-size: 12px;
   font-weight: 700;
 }
