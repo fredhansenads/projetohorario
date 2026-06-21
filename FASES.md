@@ -410,7 +410,7 @@ Validacao da fase:
 - `python -m unittest discover -s tests -v`
 - `node --check static\app.js`
 
-Commit de conclusao: a preencher apos commit final da fase.
+Commit de conclusao: `f90d47a Concluir fase 11 de testes e validacao`.
 
 ## Fase 12 - Implantacao
 
