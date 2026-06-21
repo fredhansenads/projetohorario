@@ -13,12 +13,24 @@
   <body>
     <section id="loginScreen" class="login-screen">
       <form id="loginForm" class="login-panel">
-        <p class="eyebrow">Acesso administrativo</p>
+        <p class="eyebrow">Acesso ao sistema</p>
         <h1>Horario Escolar</h1>
         <label>Usuario<input name="username" value="admin" autocomplete="username"></label>
         <label>Senha<input name="password" type="password" autocomplete="current-password"></label>
         <p id="loginError" class="login-error"></p>
         <button class="primary" type="submit">Entrar</button>
+        <button id="showRegisterBtn" type="button" class="ghost">Criar minha conta</button>
+      </form>
+      <form id="registerForm" class="login-panel hidden">
+        <p class="eyebrow">Nova conta</p>
+        <h1>Criar acesso</h1>
+        <label>Nome completo<input name="name" autocomplete="name"></label>
+        <label>Usuario<input name="username" autocomplete="username"></label>
+        <label>Senha<input name="password" type="password" autocomplete="new-password"></label>
+        <p class="muted">A conta criada entra como consulta. Um administrador pode liberar permissao administrativa depois.</p>
+        <p id="registerError" class="login-error"></p>
+        <button class="primary" type="submit">Criar conta e entrar</button>
+        <button id="showLoginBtn" type="button" class="ghost">Voltar para login</button>
       </form>
     </section>
     <aside class="sidebar">

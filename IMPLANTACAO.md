@@ -78,6 +78,8 @@ Procedimento recomendado apos a primeira entrada:
 3. Alterar a senha padrao do administrador inicial ou desativar esse usuario.
 4. Registrar quem sera responsavel pelos backups.
 
+Usuarios tambem podem criar a propria conta pela tela inicial. Por seguranca, contas criadas pelo proprio usuario entram como `viewer`; um administrador pode mudar o perfil depois.
+
 ## 5. Backup
 
 Backup manual pela interface:

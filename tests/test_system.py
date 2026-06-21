@@ -195,6 +195,38 @@ class HttpApiTests(TemporaryStorageTestCase):
         self.assertEqual(200, login_status)
         self.assertEqual("coord", login_payload["user"]["username"])
 
+    def test_user_can_register_own_viewer_account_and_enter_system(self) -> None:
+        status, payload = self.request(
+            "/api/register",
+            "POST",
+            payload={"name": "Professor Novo", "username": "profnovo", "password": "prof123"},
+        )
+        token = payload.get("sessionToken", "")
+        state_status, state_payload = self.request("/api/state", token=token)
+
+        self.assertEqual(200, status)
+        self.assertEqual("profnovo", payload["user"]["username"])
+        self.assertEqual("viewer", payload["user"]["role"])
+        self.assertEqual(200, state_status)
+        self.assertIn("school", state_payload["data"])
+
+    def test_register_rejects_duplicate_user_and_short_password(self) -> None:
+        status_short, payload_short = self.request(
+            "/api/register",
+            "POST",
+            payload={"name": "Curto", "username": "curto", "password": "123"},
+        )
+        status_duplicate, payload_duplicate = self.request(
+            "/api/register",
+            "POST",
+            payload={"name": "Admin Duplicado", "username": "ADMIN", "password": "admin123"},
+        )
+
+        self.assertEqual(400, status_short)
+        self.assertIn("Senha", payload_short["message"])
+        self.assertEqual(400, status_duplicate)
+        self.assertIn("Usuario ja existe", payload_duplicate["message"])
+
     def test_create_user_requires_safe_password(self) -> None:
         token = self.login_token()
         status, payload = self.request(

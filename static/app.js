@@ -96,7 +96,18 @@ async function bootstrap() {
 
 function showLogin(message = "") {
   $("#loginScreen").classList.remove("hidden");
+  $("#loginForm").classList.remove("hidden");
+  $("#registerForm").classList.add("hidden");
   $("#loginError").textContent = message;
+  $("#registerError").textContent = "";
+}
+
+function showRegister(message = "") {
+  $("#loginScreen").classList.remove("hidden");
+  $("#loginForm").classList.add("hidden");
+  $("#registerForm").classList.remove("hidden");
+  $("#registerError").textContent = message;
+  $("#loginError").textContent = "";
 }
 
 function hideLogin() {
@@ -110,6 +121,21 @@ async function login(event) {
   const payload = await response.json();
   if (!response.ok) {
     showLogin(payload.message || "Falha no login.");
+    return;
+  }
+  currentUser = payload.user;
+  sessionToken = payload.sessionToken || "";
+  hideLogin();
+  await load();
+}
+
+async function registerAccount(event) {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.currentTarget).entries());
+  const response = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+  const payload = await response.json();
+  if (!response.ok) {
+    showRegister(payload.message || "Nao foi possivel criar a conta.");
     return;
   }
   currentUser = payload.user;
@@ -1203,6 +1229,9 @@ $("#generateBtn").addEventListener("click", generate);
 $("#resetBtn").addEventListener("click", resetExample);
 $("#logoutBtn").addEventListener("click", logout);
 $("#loginForm").addEventListener("submit", login);
+$("#registerForm").addEventListener("submit", registerAccount);
+$("#showRegisterBtn").addEventListener("click", () => showRegister());
+$("#showLoginBtn").addEventListener("click", () => showLogin());
 $("#printBtn").addEventListener("click", () => {
   currentView = "relatorios";
   $$(".view").forEach((view) => view.classList.toggle("active", view.id === currentView));

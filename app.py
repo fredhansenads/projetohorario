@@ -269,6 +269,11 @@ def has_active_admin(users: list[dict]) -> bool:
     return any(user.get("role") == "admin" and user.get("active", True) for user in users)
 
 
+def username_exists(users: list[dict], username: str, ignore_id: str = "") -> bool:
+    normalized = username.strip().lower()
+    return any(user.get("username", "").strip().lower() == normalized and user.get("id") != ignore_id for user in users)
+
+
 def verify_user(db: dict, username: str, password: str) -> dict | None:
     for user in db.get("users", []):
         if user.get("username") == username and user.get("active", True):
@@ -862,6 +867,31 @@ class AppHandler(BaseHTTPRequestHandler):
             SESSIONS[session_id] = user["id"]
             self.json_response({"ok": True, "sessionToken": session_id, "user": public_user(user)}, headers={"Set-Cookie": f"horario_session={session_id}; Path=/; HttpOnly; SameSite=Lax"})
             return
+        if parsed.path == "/api/register":
+            username = str(body.get("username", "")).strip()
+            name = str(body.get("name", "")).strip()
+            password = str(body.get("password", ""))
+            users = db.get("users", [])
+            if not username or not name:
+                self.json_response({"ok": False, "message": "Nome e usuario sao obrigatorios."}, status=400)
+                return
+            if len(password) < 6:
+                self.json_response({"ok": False, "message": "Senha deve ter pelo menos 6 caracteres."}, status=400)
+                return
+            if username_exists(users, username):
+                self.json_response({"ok": False, "message": "Usuario ja existe."}, status=400)
+                return
+            new_user = make_user(username, name, password, "viewer")
+            users.append(new_user)
+            db["users"] = users
+            save_db(db)
+            session_id = secrets.token_urlsafe(32)
+            SESSIONS[session_id] = new_user["id"]
+            self.json_response(
+                {"ok": True, "sessionToken": session_id, "user": public_user(new_user), "data": public_db(db), "validation": validate_schedule(db)},
+                headers={"Set-Cookie": f"horario_session={session_id}; Path=/; HttpOnly; SameSite=Lax"},
+            )
+            return
         if parsed.path == "/api/logout":
             cookie = self.headers.get("Cookie", "")
             for part in cookie.split(";"):
@@ -894,8 +924,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 return
             users = db.get("users", [])
             existing = next((item for item in users if item.get("id") == incoming.get("id")), None)
-            duplicate = next((item for item in users if item.get("username") == incoming.get("username") and item.get("id") != incoming.get("id")), None)
-            if duplicate:
+            if username_exists(users, incoming.get("username"), incoming.get("id", "")):
                 self.json_response({"ok": False, "message": "Usuario ja existe."}, status=400)
                 return
             if existing:
