@@ -95,8 +95,6 @@ Usuario: admin
 Senha: admin123
 ```
 
-Novos usuarios podem criar a propria conta na tela inicial em **Criar minha conta**. Essas contas entram como consulta; um administrador pode alterar o perfil depois em Cadastros > Contas de usuario.
-
 ## Validacao tecnica
 
 ```powershell

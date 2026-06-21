@@ -1,4 +1,4 @@
-const CACHE_NAME = "horario-escolar-v2";
+const CACHE_NAME = "horario-escolar-v1";
 const APP_SHELL = [
   "/",
   "/app.css",

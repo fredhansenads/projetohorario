@@ -313,7 +313,7 @@ id; nome; periodos separados por virgula
 
 ### 7.7 Contas de usuario
 
-Cada pessoa pode criar a propria conta na tela inicial, usando "Criar minha conta". Administradores tambem podem criar contas para outros usuarios no modulo Cadastros, painel "Contas de usuario".
+Administradores podem criar contas para outros usuarios no modulo Cadastros, painel "Contas de usuario".
 
 Campos:
 
@@ -330,7 +330,6 @@ Perfis:
 
 Regras de seguranca:
 
-- cadastro publico cria conta com perfil `viewer`;
 - senha inicial obrigatoria ao criar conta;
 - senha com pelo menos 6 caracteres;
 - usuario duplicado nao e permitido;
@@ -375,7 +374,6 @@ Rotas principais:
 ```text
 GET    /api/session
 POST   /api/login
-POST   /api/register
 POST   /api/logout
 GET    /api/state
 POST   /api/state
@@ -397,7 +395,6 @@ Descricao:
 
 - `/api/session`: consulta usuario logado.
 - `/api/login`: inicia sessao.
-- `/api/register`: cria a propria conta de consulta e inicia sessao.
 - `/api/logout`: encerra sessao.
 - `/api/state`: carrega ou salva o estado completo.
 - `/api/users`: lista, cria, atualiza ou remove usuarios.

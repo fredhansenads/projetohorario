@@ -50,10 +50,6 @@ body {
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
 }
 
-.login-panel.hidden {
-  display: none;
-}
-
 .login-panel h1 {
   margin: 0;
 }

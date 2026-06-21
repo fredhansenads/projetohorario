@@ -23,8 +23,6 @@ node --check static\app.js
 - Carregamento e salvamento do estado.
 - Protecao de hashes e salts dos usuarios na resposta publica.
 - Login do administrador inicial.
-- Cadastro publico de nova conta de consulta.
-- Login automatico apos criar a propria conta.
 - Criacao de conta para outro usuario e login com a nova conta.
 - Bloqueio de senha inicial curta.
 - Protecao para manter pelo menos um administrador ativo.
