@@ -1128,11 +1128,22 @@ class AppHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
 
+def runtime_config(argv: list[str] | None = None, environ: dict | None = None) -> tuple[str, int]:
+    args = argv if argv is not None else sys.argv
+    env = environ if environ is not None else os.environ
+    port = int(args[1] if len(args) > 1 else env.get("PORT", "8000"))
+    host = args[2] if len(args) > 2 else env.get("HOST", "127.0.0.1")
+    return host, port
+
+
 def main() -> None:
     load_db()
-    port = int(sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PORT", "8000"))
-    server = ThreadingHTTPServer(("127.0.0.1", port), AppHandler)
-    print(f"Sistema de horarios rodando em http://127.0.0.1:{port}")
+    host, port = runtime_config()
+    server = ThreadingHTTPServer((host, port), AppHandler)
+    local_host = "127.0.0.1" if host in ("", "0.0.0.0") else host
+    print(f"Sistema de horarios rodando em http://{local_host}:{port}")
+    if host == "0.0.0.0":
+        print("Modo rede ativo. Use o IP deste computador para acessar a partir de outros dispositivos autorizados.")
     server.serve_forever()
 
 

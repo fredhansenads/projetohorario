@@ -6,7 +6,7 @@ Nome do sistema: Sistema Web para Elaboracao Automatica de Horarios Escolares.
 
 Objetivo: apoiar direcao e coordenacao escolar na criacao, validacao, ajuste e impressao de horarios semanais de aulas, reduzindo conflitos entre professores, turmas, salas e cargas horarias.
 
-Versao atual: sistema funcional com Fases 1 a 11 concluidas.
+Versao atual: sistema funcional com Fases 1 a 12 concluidas.
 
 Repositorio: `https://github.com/fredhansenads/projetohorario`
 
@@ -27,9 +27,6 @@ Fases concluidas:
 - Fase 9: Banco de dados real.
 - Fase 10: Interface profissional.
 - Fase 11: Testes e validacao.
-
-Fases planejadas:
-
 - Fase 12: Implantacao.
 
 O roteiro completo esta em `FASES.md`.
@@ -108,7 +105,11 @@ Descricao:
 - `FASES.md`: memoria e roteiro de evolucao da Fase 1 a Fase 12.
 - `DOCUMENTACAO.md`: documentacao oficial do sistema.
 - `TESTES.md`: plano de testes automatizados e checklist manual.
+- `IMPLANTACAO.md`: guia de implantacao, backup e manutencao.
 - `iniciar.bat`: atalho para iniciar o servidor no Windows.
+- `iniciar_rede.bat`: atalho para iniciar em rede interna.
+- `backup.bat`: atalho para criar backup local dos dados.
+- `scripts/backup.py`: rotina de copia dos arquivos de dados.
 - `data/horario.sqlite3`: banco de dados principal criado automaticamente em tempo de uso.
 - `data/horario-db.json`: arquivo legado usado apenas para migracao automatica quando existir.
 
@@ -386,6 +387,12 @@ Os dados ficam em:
 data/horario.sqlite3
 ```
 
+Backups locais criados por `backup.bat` ficam em:
+
+```text
+backups/
+```
+
 O arquivo JSON antigo `data/horario-db.json` e usado apenas como fonte de migracao automatica quando existir.
 
 A pasta `data/` e ignorada pelo Git para evitar salvar dados locais no repositorio.
@@ -442,6 +449,7 @@ Commits de referencia:
 - `70a9f58`: conclusao da Fase 9.
 - `161edc4`: conclusao da Fase 10.
 - `f90d47a`: conclusao da Fase 11.
+- A preencher: conclusao da Fase 12.
 - `03e8b7b`: roteiro completo das fases.
 
 ## 14. Limitacoes conhecidas
@@ -451,8 +459,8 @@ Commits de referencia:
 - A exportacao Excel nativa ainda nao foi implementada; a versao atual oferece CSV.
 - A Fase 11 criou testes principais, mas cenarios reais maiores ainda devem ser acompanhados na implantacao.
 
-## 15. Proximas fases
+## 15. Implantacao e operacao
 
-Proxima fase de desenvolvimento: Fase 12 - Implantacao.
+O guia operacional completo esta em `IMPLANTACAO.md`.
 
-Depois dela: manutencao, acompanhamento do uso real e melhorias conforme necessidade da escola.
+Estado atual: as Fases 1 a 12 estao concluidas. A partir daqui, o trabalho passa a ser manutencao, acompanhamento do uso real e melhorias conforme necessidade da escola.

@@ -414,7 +414,7 @@ Commit de conclusao: `f90d47a Concluir fase 11 de testes e validacao`.
 
 ## Fase 12 - Implantacao
 
-Status: pendente.
+Status: concluida.
 
 Objetivo: deixar o sistema pronto para uso fora do ambiente de desenvolvimento.
 
@@ -434,3 +434,25 @@ Criterios de conclusao:
 - Sistema acessivel no ambiente escolhido.
 - Backup definido.
 - Usuario principal consegue operar cadastros, geracao, ajustes e relatorios.
+
+Entregas concluidas:
+
+- Servidor configuravel por `HOST`, `PORT` e argumentos de linha de comando.
+- Modo local preservado em `iniciar.bat`.
+- Modo rede interna criado em `iniciar_rede.bat`.
+- Rotina de backup por arquivo criada em `backup.bat` e `scripts/backup.py`.
+- Pasta `backups/` ignorada pelo Git para proteger dados locais.
+- Guia operacional completo criado em `IMPLANTACAO.md`.
+- Documentacao oficial atualizada para Fases 1 a 12 concluidas.
+- README atualizado com execucao local, rede e backup.
+- Teste automatizado para configuracao de implantacao.
+- Checklist de aceite, treinamento, backup e manutencao documentado.
+
+Validacao da fase:
+
+- `python -m py_compile app.py tests\test_system.py scripts\backup.py`
+- `python -m unittest discover -s tests -v`
+- `node --check static\app.js`
+- Teste de inicializacao local com `/api/health`
+
+Commit de conclusao: a preencher apos commit final da fase.

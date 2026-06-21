@@ -32,6 +32,7 @@ node --check static\app.js
 - Exportacao CSV da grade.
 - API protegida por login.
 - Geracao via API com registro no historico.
+- Configuracao de implantacao por `HOST`, `PORT` e argumentos de linha de comando.
 
 ## Checklist manual da coordenacao
 

@@ -9,6 +9,7 @@ A versao atual e um sistema funcional, sem dependencias externas, feito com Pyth
 - Documentacao oficial: `DOCUMENTACAO.md`
 - Controle das fases: `FASES.md`
 - Plano de testes: `TESTES.md`
+- Guia de implantacao: `IMPLANTACAO.md`
 
 ## Como executar
 
@@ -29,6 +30,18 @@ http://127.0.0.1:8000
 ```
 
 No Windows, tambem e possivel dar dois cliques em `iniciar.bat`.
+
+Para liberar acesso na rede interna:
+
+```powershell
+iniciar_rede.bat
+```
+
+Para criar backup local dos arquivos de dados:
+
+```powershell
+backup.bat
+```
 
 ## Dados
 
@@ -59,9 +72,6 @@ Fases concluidas:
 - Fase 9: Banco de dados real.
 - Fase 10: Interface profissional.
 - Fase 11: Testes e validacao.
-
-Proxima fase:
-
 - Fase 12: Implantacao.
 
 Primeiro acesso:

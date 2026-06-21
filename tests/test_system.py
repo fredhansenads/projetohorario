@@ -54,6 +54,13 @@ class StorageAndSecurityTests(TemporaryStorageTestCase):
         self.assertIsNotNone(app.verify_user(loaded, "admin", "admin123"))
 
 
+class DeploymentConfigTests(unittest.TestCase):
+    def test_runtime_config_accepts_environment_and_command_line(self) -> None:
+        self.assertEqual(("0.0.0.0", 8080), app.runtime_config(["app.py"], {"HOST": "0.0.0.0", "PORT": "8080"}))
+        self.assertEqual(("127.0.0.1", 8010), app.runtime_config(["app.py", "8010"], {}))
+        self.assertEqual(("192.168.0.10", 9000), app.runtime_config(["app.py", "9000", "192.168.0.10"], {}))
+
+
 class GenerationTests(TemporaryStorageTestCase):
     def test_generator_completes_seed_schedule_without_hard_conflicts(self) -> None:
         db = self.seed()
