@@ -8,6 +8,8 @@ let gradeMode = "class";
 let selectedLessonId = "";
 let cadastroSearch = "";
 let gradeSearch = "";
+let matrixSearch = "";
+let availabilitySearch = "";
 let currentUser = null;
 let sessionToken = "";
 let generationHistory = [];
@@ -134,6 +136,18 @@ function nameOf(collection, itemId, fallback = "") {
   return state[collection].find((item) => item.id === itemId)?.name || fallback;
 }
 
+function sortByLabel(items, labeler = (item) => item.name || item.username || "") {
+  return [...items].sort((a, b) => labeler(a).localeCompare(labeler(b), "pt-BR", { sensitivity: "base" }));
+}
+
+function emptyState(title, text) {
+  return `
+    <div class="empty-state">
+      <strong>${title}</strong>
+      <p>${text}</p>
+    </div>`;
+}
+
 function schoolDays() {
   return state?.school?.days?.length ? state.school.days : DAYS;
 }
@@ -200,12 +214,18 @@ function renderDashboard() {
         ${phase("5", "Ajuste manual seguro", "Inserir, mover, fixar e trocar aulas com controle de conflito.")}
         ${phase("6", "Visualizacoes", "Consolidar visoes por turma, professor, sala, geral, conflitos e pendencias.")}
         ${phase("7", "Relatorios", "PDF, CSV/Excel e relatorios por publico.")}
+        ${phase("8", "Login e seguranca", "Acesso autenticado, perfis de usuario e protecao da API.")}
+        ${phase("9", "Banco de dados real", "SQLite, migracao de JSON legado, historico de geracoes e backups.")}
+        ${phase("10", "Interface profissional", "Buscas, ordenacao, responsividade, estados vazios e padronizacao visual.")}
+        ${phase("11", "Testes e validacao", "Suite de testes e checklist de uso real.")}
+        ${phase("12", "Implantacao", "Preparacao do ambiente final, backup e rotina de manutencao.")}
       </div>
     </div>
   `;
 }
 
 function storagePanel() {
+  const recentHistory = generationHistory.slice(0, 4);
   return `
     <div class="grid two" style="margin-top:16px">
       <div class="panel">
@@ -219,7 +239,7 @@ function storagePanel() {
       <div class="panel">
         <div class="panel-head"><h3>Historico recente</h3><span class="chip">${generationHistory.length}</span></div>
         <div class="list">
-          ${generationHistory.slice(0, 4).map((item) => `<div class="item"><div><strong>${item.createdAt}</strong><p class="muted">Pontuacao ${item.score} | ${item.lessons} aulas | conflitos ${item.conflicts}</p></div></div>`).join("") || `<p class="muted">Nenhuma geracao registrada.</p>`}
+          ${recentHistory.map((item) => `<div class="item"><div><strong>${item.createdAt}</strong><p class="muted">Pontuacao ${item.score} | ${item.lessons} aulas | conflitos ${item.conflicts}</p></div></div>`).join("") || emptyState("Nenhuma geracao registrada", "Gere um horario para iniciar o historico do banco.")}
         </div>
       </div>
     </div>`;
@@ -255,7 +275,7 @@ function phase(number, title, text) {
 }
 
 function alertList(items, type = "") {
-  if (!items.length) return `<p class="muted">Nenhum item encontrado.</p>`;
+  if (!items.length) return emptyState("Nenhum item encontrado", "Quando houver alertas, eles aparecerao aqui.");
   return items
     .map((item) => `<div class="alert ${type}"><strong>${item.message}</strong>${item.context ? `<p>${item.context}</p>` : ""}</div>`)
     .join("");
@@ -273,7 +293,10 @@ function renderCadastros() {
   $("#cadastros").innerHTML = `
     <div class="panel">
       <div class="panel-head"><h3>Consulta de cadastros</h3><span class="chip">${cadastroSearch ? "Filtrado" : "Todos"}</span></div>
-      <label>Buscar<input id="cadastroSearch" value="${escapeHtml(cadastroSearch)}" placeholder="Nome, contato, serie, sala, disciplina..."></label>
+      <div class="toolbar">
+        <label>Buscar<input id="cadastroSearch" value="${escapeHtml(cadastroSearch)}" placeholder="Nome, contato, serie, sala, disciplina..."></label>
+        <span class="muted">Listas em ordem alfabetica.</span>
+      </div>
     </div>
     <div style="height:16px"></div>
     <div class="grid two">
@@ -293,11 +316,12 @@ function renderCadastros() {
 }
 
 function usersPanel() {
+  const users = sortByLabel(state.users || [], (user) => user.name || user.username || "");
   return `
     <div class="panel">
-      <div class="panel-head"><h3>Usuarios</h3><button data-add-user>Adicionar</button></div>
+      <div class="panel-head"><h3>Usuarios</h3><div class="actions"><span class="chip">${users.length}</span><button data-add-user>Adicionar</button></div></div>
       <div class="list">
-        ${(state.users || [])
+        ${users
           .map(
             (user) => `
             <div class="item">
@@ -305,7 +329,7 @@ function usersPanel() {
               <div class="actions"><button data-edit-user="${user.id}">Editar</button><button data-delete-user="${user.id}">Remover</button></div>
             </div>`
           )
-          .join("") || `<p class="muted">Nenhum usuario.</p>`}
+          .join("") || emptyState("Nenhum usuario", "Adicione usuarios para separar acesso administrativo e consulta.")}
       </div>
     </div>`;
 }
@@ -324,7 +348,7 @@ function collectionPanel(title, key) {
   }
   return `
     <div class="panel">
-      <div class="panel-head"><h3>${title}</h3><button data-add="${key}">Adicionar</button></div>
+      <div class="panel-head"><h3>${title}</h3><div class="actions"><span class="chip">${filteredCollection(key).length}</span><button data-add="${key}">Adicionar</button></div></div>
       <div class="list">
         ${filteredCollection(key)
           .map(
@@ -334,15 +358,16 @@ function collectionPanel(title, key) {
               <div class="actions"><button data-edit="${key}:${item.id}">Editar</button><button data-delete="${key}:${item.id}">Remover</button></div>
             </div>`
           )
-          .join("") || `<p class="muted">Nenhum cadastro.</p>`}
+          .join("") || emptyState("Nenhum cadastro encontrado", cadastroSearch ? "Ajuste a busca ou adicione um novo registro." : "Adicione o primeiro registro para continuar a configuracao.")}
       </div>
     </div>`;
 }
 
 function filteredCollection(key) {
   const query = cadastroSearch.trim().toLowerCase();
-  if (!query) return state[key];
-  return state[key].filter((item) => `${item.name || ""} ${describeItem(key, item)}`.toLowerCase().includes(query));
+  const items = sortByLabel(state[key] || []);
+  if (!query) return items;
+  return items.filter((item) => `${item.name || ""} ${describeItem(key, item)}`.toLowerCase().includes(query));
 }
 
 function describeItem(key, item) {
@@ -360,13 +385,14 @@ function describeItem(key, item) {
 }
 
 function turnosPanel() {
+  const shifts = sortByLabel(state.school.shifts || [], (shift) => shift.name || shift.id);
   return `
     <div class="panel">
       <div class="panel-head"><h3>Turnos e periodos</h3><button data-edit-shifts>Editar</button></div>
       <div class="list">
-        ${state.school.shifts
+        ${shifts
           .map((shift) => `<div class="item"><div><strong>${shift.name}</strong><p class="muted">${shift.id} | ${shift.periods.map(periodLabel).join(", ")}</p></div></div>`)
-          .join("")}
+          .join("") || emptyState("Nenhum turno configurado", "Cadastre ao menos um turno para organizar os periodos.")}
       </div>
     </div>`;
 }
@@ -377,14 +403,31 @@ function periodLabel(period) {
 }
 
 function renderMatriz() {
+  const query = matrixSearch.trim().toLowerCase();
+  const rows = sortByLabel(state.curriculum || [], (row) => `${nameOf("classes", row.classId)} ${nameOf("subjects", row.subjectId)} ${nameOf("teachers", row.teacherId)}`)
+    .filter((row) => {
+      if (!query) return true;
+      return [
+        nameOf("classes", row.classId),
+        nameOf("subjects", row.subjectId),
+        nameOf("teachers", row.teacherId),
+        nameOf("rooms", row.specialRoomId),
+        row.weeklyLessons,
+        row.requiresDouble ? "aula dupla" : "aula simples",
+      ].join(" ").toLowerCase().includes(query);
+    });
   $("#matriz").innerHTML = `
     <div class="panel">
-      <div class="panel-head"><h3>Matriz curricular</h3><button data-add-curriculum>Adicionar vinculo</button></div>
+      <div class="panel-head"><h3>Matriz curricular</h3><div class="actions"><span class="chip">${rows.length}</span><button data-add-curriculum>Adicionar vinculo</button></div></div>
+      <div class="toolbar">
+        <label>Buscar<input id="matrixSearch" value="${escapeHtml(matrixSearch)}" placeholder="Turma, disciplina, professor ou sala..."></label>
+        <span class="muted">Ordenada por turma, disciplina e professor.</span>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Turma</th><th>Disciplina</th><th>Professor</th><th>Aulas</th><th>Aula dupla</th><th>Sala especial</th><th></th></tr></thead>
           <tbody>
-            ${state.curriculum
+            ${rows
               .map(
                 (row) => `<tr>
                   <td>${nameOf("classes", row.classId)}</td>
@@ -396,17 +439,34 @@ function renderMatriz() {
                   <td><button data-edit-curriculum="${row.id}">Editar</button></td>
                 </tr>`
               )
-              .join("")}
+              .join("") || `<tr><td colspan="7">${emptyState("Nenhum vinculo encontrado", query ? "Ajuste a busca para ver outros vinculos." : "Adicione vinculos curriculares para o gerador montar a grade.")}</td></tr>`}
           </tbody>
         </table>
       </div>
     </div>`;
+  $("#matrixSearch")?.addEventListener("input", (event) => {
+    matrixSearch = event.target.value;
+    renderMatriz();
+  });
 }
 
 function renderDisponibilidade() {
+  const query = availabilitySearch.trim().toLowerCase();
+  const teachers = sortByLabel(state.teachers || []).filter((teacher) => {
+    if (!query) return true;
+    return `${teacher.name || ""} ${teacher.contact || ""} ${describeItem("teachers", teacher)}`.toLowerCase().includes(query);
+  });
   $("#disponibilidade").innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><h3>Disponibilidade dos professores</h3><span class="chip">${teachers.length}</span></div>
+      <div class="toolbar">
+        <label>Buscar professor<input id="availabilitySearch" value="${escapeHtml(availabilitySearch)}" placeholder="Nome, contato ou disciplina..."></label>
+        <span class="muted">Clique em um periodo para bloquear ou liberar.</span>
+      </div>
+    </div>
+    <div style="height:16px"></div>
     <div class="grid">
-      ${state.teachers
+      ${teachers
         .map(
           (teacher) => `
           <div class="panel">
@@ -414,8 +474,12 @@ function renderDisponibilidade() {
             ${availabilityGrid(teacher)}
           </div>`
         )
-        .join("")}
+        .join("") || emptyState("Nenhum professor encontrado", query ? "Ajuste a busca para revisar outras disponibilidades." : "Cadastre professores antes de configurar disponibilidade.")}
     </div>`;
+  $("#availabilitySearch")?.addEventListener("input", (event) => {
+    availabilitySearch = event.target.value;
+    renderDisponibilidade();
+  });
 }
 
 function availabilityGrid(teacher) {
@@ -436,11 +500,12 @@ function availabilityGrid(teacher) {
 function renderGrade() {
   const activeCollection = gradeMode === "teacher" ? "teachers" : gradeMode === "room" ? "rooms" : "classes";
   const previousFilter = $("#gradeFilter")?.value;
-  const selected = previousFilter || state[activeCollection][0]?.id || "";
+  const activeItems = sortByLabel(state[activeCollection] || []);
+  const selected = previousFilter || activeItems[0]?.id || "";
   const title = gradeMode === "teacher" ? "Grade por professor" : gradeMode === "room" ? "Grade por sala" : gradeMode === "general" ? "Grade geral" : "Grade por turma";
   $("#grade").innerHTML = `
     <div class="panel no-print">
-      <div class="panel-head"><h3>${title}</h3><button data-add-lesson>Inserir aula</button></div>
+      <div class="panel-head"><h3>${title}</h3><div class="actions"><span class="chip">${gradeMode === "general" ? state.lessons.length : activeItems.length}</span><button data-add-lesson>Inserir aula</button></div></div>
       <div class="tabs">
         <button class="${gradeMode === "class" ? "active" : ""}" data-grade-mode="class">Turma</button>
         <button class="${gradeMode === "teacher" ? "active" : ""}" data-grade-mode="teacher">Professor</button>
@@ -450,7 +515,7 @@ function renderGrade() {
       ${
         gradeMode === "general"
           ? `<p class="muted">Visao consolidada de todas as aulas por dia e periodo.</p>`
-          : `<label>${title.replace("Grade por ", "")}<select id="gradeFilter">${state[activeCollection]
+          : `<label>${title.replace("Grade por ", "")}<select id="gradeFilter">${activeItems
               .map((item) => `<option value="${item.id}">${item.name}</option>`)
               .join("")}</select></label>`
       }
@@ -460,7 +525,7 @@ function renderGrade() {
     <div style="height:16px"></div>
     ${visualSummary()}
     <div style="height:16px"></div>
-    ${gradeMode === "general" ? generalTimetable() : selected ? entityTimetable(gradeMode, selected) : `<p class="muted">Cadastre itens para montar a grade.</p>`}
+    ${gradeMode === "general" ? generalTimetable() : selected ? entityTimetable(gradeMode, selected) : emptyState("Nada para montar a grade", "Cadastre turmas, professores, salas e matriz curricular antes de inserir aulas.")}
   `;
   const filter = $("#gradeFilter");
   if (filter) {
@@ -502,7 +567,7 @@ function entityTimetable(type, entityId) {
     teacher: state.teachers.find((item) => item.id === entityId),
     room: state.rooms.find((item) => item.id === entityId),
   }[type];
-  if (!entity) return `<p class="muted">Nada para exibir.</p>`;
+  if (!entity) return emptyState("Nada para exibir", "Selecione um item valido para visualizar a grade.");
   const lessons = state.lessons.filter((item) => {
     if (type === "teacher") return item.teacherId === entityId;
     if (type === "room") return item.roomId === entityId;
@@ -522,7 +587,7 @@ function entityTimetable(type, entityId) {
                 .map((day) => {
                   const lesson = lessons.find((item) => item.day === day && item.period === period);
                   const emptySlot = type === "class" ? `<button data-slot="${entityId}:${day}:${period}">${selectedLessonId ? "Mover aqui" : "Livre"}</button>` : `<span class="muted">Livre</span>`;
-                  return `<td>${lesson ? lessonCard(lesson, type) : emptySlot}</td>`;
+                  return `<td class="${lesson ? "" : "empty-cell"}">${lesson ? lessonCard(lesson, type) : emptySlot}</td>`;
                 })
                 .join("")}
             </tr>`
@@ -543,7 +608,7 @@ function generalTimetable() {
               <th>${period}</th>
               ${schoolDays().map((day) => {
                 const lessons = state.lessons.filter((item) => item.day === day && item.period === period).filter(lessonMatchesSearch);
-                return `<td>${lessons.length ? lessons.map((lesson) => lessonCard(lesson, "general")).join("") : `<span class="muted">Sem aulas</span>`}</td>`;
+                return `<td class="${lessons.length ? "" : "empty-cell"}">${lessons.length ? lessons.map((lesson) => lessonCard(lesson, "general")).join("") : `<span class="muted">Sem aulas</span>`}</td>`;
               }).join("")}
             </tr>`
           ).join("")}

@@ -2,7 +2,7 @@
 
 Sistema web para cadastrar dados escolares, montar matriz curricular, gerar horarios automaticamente, validar conflitos e imprimir relatorios.
 
-A versao atual e um MVP funcional, sem dependencias externas, feito com Python puro, HTML, CSS, JavaScript e persistencia em JSON.
+A versao atual e um sistema funcional, sem dependencias externas, feito com Python puro, HTML, CSS, JavaScript e persistencia principal em SQLite.
 
 ## Documentacao
 
@@ -56,10 +56,11 @@ Fases concluidas:
 - Fase 7: Relatorios e exportacao.
 - Fase 8: Login e seguranca.
 - Fase 9: Banco de dados real.
+- Fase 10: Interface profissional.
 
 Proxima fase:
 
-- Fase 10: Interface profissional.
+- Fase 11: Testes e validacao.
 
 Primeiro acesso:
 

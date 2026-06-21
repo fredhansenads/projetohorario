@@ -7,6 +7,7 @@
   --panel: #ffffff;
   --accent: #1d6f6f;
   --accent-dark: #155454;
+  --accent-soft: #edf6f4;
   --warn: #a65f00;
   --danger: #a33a3a;
 }
@@ -80,10 +81,22 @@ button {
   border-radius: 6px;
   padding: 10px 12px;
   cursor: pointer;
+  min-height: 40px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 button:hover {
   border-color: var(--accent);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.button-link:focus-visible {
+  outline: 3px solid rgba(29, 111, 111, 0.22);
+  outline-offset: 2px;
 }
 
 button.primary {
@@ -104,6 +117,7 @@ button.ghost {
 .button-link {
   display: inline-flex;
   align-items: center;
+  min-height: 40px;
   border: 1px solid var(--line);
   background: var(--panel);
   color: var(--ink);
@@ -187,6 +201,7 @@ main {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .view {
@@ -228,6 +243,7 @@ main {
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 
 .panel h3,
@@ -263,6 +279,43 @@ main {
   justify-content: space-between;
   gap: 12px;
   align-items: center;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.item > div {
+  min-width: 0;
+}
+
+.item strong,
+.lesson strong {
+  overflow-wrap: anywhere;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.empty-state {
+  width: 100%;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfcfd;
+  color: var(--muted);
+}
+
+.empty-state strong {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.empty-state p {
+  margin: 0;
 }
 
 table {
@@ -282,6 +335,9 @@ td {
 th {
   background: #eef3f5;
   color: #31444f;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .timetable {
@@ -292,12 +348,15 @@ th {
   overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
+  background: var(--panel);
 }
 
 .lesson {
   min-height: 68px;
   display: grid;
   gap: 4px;
+  min-width: 156px;
+  overflow-wrap: anywhere;
 }
 
 .lesson.conflicted {
@@ -331,6 +390,7 @@ th {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-items: center;
 }
 
 .tabs {
@@ -351,9 +411,10 @@ th {
   align-items: center;
   border-radius: 999px;
   padding: 5px 9px;
-  background: #edf6f4;
+  background: var(--accent-soft);
   color: var(--accent-dark);
   font-size: 12px;
+  line-height: 1.25;
 }
 
 .chip.mini {
@@ -428,7 +489,7 @@ textarea {
 .modal {
   width: min(760px, 100%);
   max-height: 92vh;
-  overflow: auto;
+  overflow: hidden;
   background: white;
   border-radius: 8px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
@@ -447,10 +508,13 @@ textarea {
   border-top: 1px solid var(--line);
   border-bottom: 0;
   justify-content: flex-end;
+  background: white;
 }
 
 .modal-body {
   padding: 16px;
+  max-height: calc(92vh - 138px);
+  overflow: auto;
 }
 
 .availability-grid {
@@ -458,6 +522,7 @@ textarea {
   grid-template-columns: 100px repeat(5, 1fr);
   gap: 6px;
   align-items: center;
+  overflow-x: auto;
 }
 
 .availability-grid button {
@@ -489,6 +554,10 @@ textarea {
   break-inside: avoid;
 }
 
+.empty-cell {
+  background: #fbfcfd;
+}
+
 @media (max-width: 900px) {
   body {
     grid-template-columns: 1fr;
@@ -496,14 +565,73 @@ textarea {
 
   .sidebar {
     min-height: auto;
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .sidebar nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sidebar nav button {
+    text-align: center;
+    padding-inline: 8px;
   }
 
   .topbar,
   .grid.two,
   .grid.three,
-  .form-grid {
+  .form-grid,
+  .toolbar {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .topbar {
+    padding: 18px;
+    align-items: start;
+  }
+
+  .view {
+    padding: 18px;
+  }
+
+  .actions button,
+  .button-link {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+
+  .status-box {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .topbar .actions {
+    width: 100%;
+  }
+
+  .topbar .actions button {
+    flex-basis: 100%;
+  }
+
+  .panel,
+  .card,
+  .report {
+    padding: 14px;
+  }
+
+  .availability-grid {
+    grid-template-columns: 92px repeat(5, 104px);
+  }
+
+  .lesson {
+    min-width: 136px;
   }
 }
 

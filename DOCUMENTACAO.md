@@ -6,13 +6,13 @@ Nome do sistema: Sistema Web para Elaboracao Automatica de Horarios Escolares.
 
 Objetivo: apoiar direcao e coordenacao escolar na criacao, validacao, ajuste e impressao de horarios semanais de aulas, reduzindo conflitos entre professores, turmas, salas e cargas horarias.
 
-Versao atual: MVP funcional com Fases 1 e 2 concluidas.
+Versao atual: sistema funcional com Fases 1 a 10 concluidas.
 
 Repositorio: `https://github.com/fredhansenads/projetohorario`
 
 ## 2. Situacao atual
 
-O sistema roda localmente usando Python puro, sem dependencias externas. Ele usa um servidor HTTP proprio, frontend em HTML/CSS/JavaScript e persistencia em arquivo JSON.
+O sistema roda localmente usando Python puro, sem dependencias externas. Ele usa um servidor HTTP proprio, frontend em HTML/CSS/JavaScript e persistencia principal em SQLite.
 
 Fases concluidas:
 
@@ -24,11 +24,11 @@ Fases concluidas:
 - Fase 6: Visualizacoes.
 - Fase 7: Relatorios e exportacao.
 - Fase 8: Login e seguranca.
+- Fase 9: Banco de dados real.
+- Fase 10: Interface profissional.
 
 Fases planejadas:
 
-- Fase 9: Banco de dados real.
-- Fase 10: Interface profissional.
 - Fase 11: Testes e validacao.
 - Fase 12: Implantacao.
 
@@ -102,8 +102,8 @@ Descricao:
 
 - `app.py`: servidor, API, persistencia, validacoes e gerador automatico.
 - `static/index.html`: estrutura principal da interface.
-- `static/app.css`: estilo visual.
-- `static/app.js`: logica da interface, formularios e chamadas para API.
+- `static/app.css`: estilo visual, responsividade e padroes da interface.
+- `static/app.js`: logica da interface, buscas, formularios e chamadas para API.
 - `README.md`: resumo rapido do projeto.
 - `FASES.md`: memoria e roteiro de evolucao da Fase 1 a Fase 12.
 - `DOCUMENTACAO.md`: documentacao oficial do sistema.
@@ -123,7 +123,8 @@ Mostra um resumo do sistema:
 - pontuacao de qualidade;
 - alertas obrigatorios;
 - pendencias e preferencias;
-- status da base funcional.
+- status da base funcional;
+- memoria das fases do projeto.
 
 ### 6.2 Cadastros
 
@@ -135,6 +136,13 @@ Permite manter os dados basicos da escola:
 - disciplinas;
 - salas e ambientes;
 - turnos e periodos.
+
+Recursos da interface:
+
+- busca geral por nome, contato, serie, sala e disciplina;
+- ordenacao alfabetica das listas;
+- contadores por painel;
+- estados vazios com orientacao clara.
 
 ### 6.3 Matriz curricular
 
@@ -150,9 +158,13 @@ Define a relacao entre:
 
 A matriz curricular e a principal entrada para a geracao automatica.
 
+A tela possui busca por turma, disciplina, professor e sala, com linhas ordenadas para facilitar conferencia.
+
 ### 6.4 Disponibilidade
 
 Permite bloquear ou liberar horarios dos professores por dia e periodo.
+
+A tela possui busca por professor, contato e disciplina, alem de contadores para facilitar revisao em bases maiores.
 
 ### 6.5 Grade
 
@@ -168,6 +180,7 @@ Tambem permite inserir, editar e remover aulas manualmente.
 Recursos de visualizacao:
 
 - busca por disciplina, professor, turma, sala, dia e periodo;
+- listas de selecao ordenadas;
 - resumo de conflitos, pendencias e aulas fixadas;
 - destaque para aulas fixadas;
 - destaque para aulas com conflito;
@@ -400,6 +413,8 @@ Teste manual recomendado:
 5. Conferir conflitos e pendencias.
 6. Abrir a grade por turma, professor, sala e geral.
 7. Abrir relatorios.
+8. Testar buscas em cadastros, matriz, disponibilidade e grade.
+9. Reduzir a largura da janela e conferir se botoes, tabelas e formularios continuam legiveis.
 
 ## 13. Versionamento
 
@@ -420,6 +435,7 @@ Commits de referencia:
 - `f4ac667`: conclusao da Fase 7.
 - `8c5983d`: conclusao da Fase 8.
 - `70a9f58`: conclusao da Fase 9.
+- A preencher: conclusao da Fase 10.
 - `03e8b7b`: roteiro completo das fases.
 
 ## 14. Limitacoes conhecidas
@@ -427,12 +443,12 @@ Commits de referencia:
 - Ainda nao ha PostgreSQL ou banco servidor; a versao atual usa SQLite local.
 - A exportacao PDF depende da impressao do navegador.
 - A exportacao Excel nativa ainda nao foi implementada; a versao atual oferece CSV.
+- A validacao automatizada ampla ainda sera reforcada na Fase 11.
 
 ## 15. Proximas fases
 
-Proxima fase de desenvolvimento: Fase 10 - Interface profissional.
+Proxima fase de desenvolvimento: Fase 11 - Testes e validacao.
 
 Depois dela:
 
-- Fase 11: Testes e validacao.
 - Fase 12: Implantacao.
