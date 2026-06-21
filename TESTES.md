@@ -36,6 +36,7 @@ node --check static\app.js
 - API protegida por login.
 - Geracao via API com registro no historico.
 - Configuracao de implantacao por `HOST`, `PORT` e argumentos de linha de comando.
+- Arquivos PWA servidos: manifest e service worker.
 
 ## Checklist manual da coordenacao
 
@@ -57,6 +58,7 @@ node --check static\app.js
 16. Usar imprimir PDF pelo navegador.
 17. Criar backup manual.
 18. Sair e entrar novamente, confirmando que os dados continuam salvos.
+19. Instalar como PWA pelo navegador e abrir pelo atalho criado.
 
 ## Resultado esperado
 

@@ -126,7 +126,26 @@ http://127.0.0.1:8000/api/health
 
 Em rede, substitua `127.0.0.1` pelo IP do computador servidor.
 
-## 8. Treinamento minimo
+## 8. Instalacao como PWA
+
+O sistema pode ser instalado pelo navegador como aplicativo.
+
+Procedimento:
+
+1. Iniciar o servidor com `python app.py`, `iniciar.bat` ou `iniciar_rede.bat`.
+2. Abrir o endereco do sistema no navegador.
+3. Usar a opcao do navegador para instalar aplicativo ou adicionar a tela inicial.
+4. Abrir pelo atalho criado.
+
+Arquivos PWA:
+
+- `static/manifest.webmanifest`;
+- `static/service-worker.js`;
+- `static/icons/`.
+
+Importante: o aplicativo instalado continua dependendo do servidor ativo para acessar dados, salvar alteracoes e gerar horarios.
+
+## 9. Treinamento minimo
 
 Treinar pelo menos uma pessoa da coordenacao para:
 
@@ -141,7 +160,7 @@ Treinar pelo menos uma pessoa da coordenacao para:
 - criar backup;
 - executar o checklist de `TESTES.md`.
 
-## 9. Manutencao
+## 10. Manutencao
 
 Rotina recomendada:
 
@@ -151,9 +170,10 @@ Rotina recomendada:
 - Evitar apagar arquivos `.sqlite3`.
 - Manter o repositorio atualizado no GitHub apos mudancas do sistema.
 
-## 10. Checklist de aceite
+## 11. Checklist de aceite
 
 - Sistema abre no computador escolhido.
+- Sistema pode ser instalado como PWA pelo navegador.
 - Login administrativo funciona.
 - Cadastros principais podem ser editados.
 - Gerador cria grade.

@@ -21,6 +21,15 @@ const id = () => Math.random().toString(16).slice(2, 14);
 const csvToList = (value) => String(value || "").split(",").map((item) => item.trim()).filter(Boolean);
 const listToCsv = (items) => (items || []).join(", ");
 
+function registerPwa() {
+  if (!("serviceWorker" in navigator)) return;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {
+      // O sistema continua funcionando normalmente mesmo sem suporte ao PWA.
+    });
+  });
+}
+
 async function api(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   if (sessionToken) headers.Authorization = `Bearer ${sessionToken}`;
@@ -1200,6 +1209,7 @@ $("#printBtn").addEventListener("click", () => {
   window.print();
 });
 
+registerPwa();
 bootstrap().catch((error) => {
   document.body.innerHTML = `<main class="view active"><div class="panel"><h1>Erro ao carregar</h1><pre>${error.message}</pre></div></main>`;
 });

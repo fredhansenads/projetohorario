@@ -57,6 +57,20 @@ A rota de saude da aplicacao fica em:
 http://127.0.0.1:8000/api/health
 ```
 
+## PWA
+
+O sistema pode ser instalado como aplicativo pelo navegador em computadores e celulares compativeis.
+
+Arquivos principais:
+
+```text
+static/manifest.webmanifest
+static/service-worker.js
+static/icons/
+```
+
+Observacao: o PWA guarda apenas a interface em cache. Os dados continuam sendo salvos no servidor local em `data/horario.sqlite3`.
+
 ## Status
 
 Fases concluidas:

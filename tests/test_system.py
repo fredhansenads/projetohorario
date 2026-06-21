@@ -158,6 +158,10 @@ class HttpApiTests(TemporaryStorageTestCase):
             finally:
                 error.close()
 
+    def text_request(self, path: str) -> tuple[int, str, str]:
+        with urllib.request.urlopen(f"{self.base_url}{path}", timeout=10) as response:
+            return response.status, response.headers.get("Content-Type", ""), response.read().decode("utf-8")
+
     def login_token(self) -> str:
         status, payload = self.request("/api/login", "POST", payload={"username": "admin", "password": "admin123"})
         self.assertEqual(200, status)
@@ -217,6 +221,19 @@ class HttpApiTests(TemporaryStorageTestCase):
         self.assertEqual(200, status_state)
         self.assertEqual(400, status)
         self.assertIn("administrador ativo", payload["message"])
+
+    def test_pwa_files_are_served(self) -> None:
+        status_manifest, manifest_type, manifest_text = self.text_request("/manifest.webmanifest")
+        status_worker, worker_type, worker_text = self.text_request("/service-worker.js")
+
+        manifest = json.loads(manifest_text)
+        self.assertEqual(200, status_manifest)
+        self.assertIn("application/manifest+json", manifest_type)
+        self.assertEqual("standalone", manifest["display"])
+        self.assertTrue(manifest["icons"])
+        self.assertEqual(200, status_worker)
+        self.assertIn("javascript", worker_type)
+        self.assertIn("CACHE_NAME", worker_text)
 
 
 def lesson_from_row(db: dict, row: dict, room_id: str, day: str, period: str) -> dict:

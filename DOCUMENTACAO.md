@@ -86,6 +86,9 @@ static/
   index.html
   app.css
   app.js
+  manifest.webmanifest
+  service-worker.js
+  icons/
 README.md
 FASES.md
 DOCUMENTACAO.md
@@ -101,6 +104,9 @@ Descricao:
 - `static/index.html`: estrutura principal da interface.
 - `static/app.css`: estilo visual, responsividade e padroes da interface.
 - `static/app.js`: logica da interface, buscas, formularios e chamadas para API.
+- `static/manifest.webmanifest`: metadados para instalacao como PWA.
+- `static/service-worker.js`: cache da interface para funcionamento como aplicativo instalavel.
+- `static/icons/`: icones do aplicativo.
 - `README.md`: resumo rapido do projeto.
 - `FASES.md`: memoria e roteiro de evolucao da Fase 1 a Fase 12.
 - `DOCUMENTACAO.md`: documentacao oficial do sistema.
@@ -114,6 +120,19 @@ Descricao:
 - `data/horario-db.json`: arquivo legado usado apenas para migracao automatica quando existir.
 
 ## 6. Modulos do sistema
+
+### 6.0 PWA
+
+O sistema possui suporte a PWA.
+
+Recursos:
+
+- manifest com nome, cores, escopo, modo standalone e icones;
+- service worker para cache da interface;
+- instalacao pelo navegador em dispositivos compativeis;
+- chamadas da API sempre feitas pela rede, preservando a persistencia no servidor local.
+
+Observacao: o PWA nao substitui o servidor. O `python app.py` precisa estar rodando para login, cadastros, geracao, backups e relatorios com dados atualizados.
 
 ### 6.1 Painel
 

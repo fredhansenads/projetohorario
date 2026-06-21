@@ -26,6 +26,8 @@ SQLITE_FILE = DATA_DIR / "horario.sqlite3"
 STATIC_DIR = BASE_DIR / "static"
 SESSIONS: dict[str, str] = {}
 
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+
 DAYS = ["Segunda", "Terca", "Quarta", "Quinta", "Sexta"]
 DEFAULT_PERIODS = ["1a aula", "2a aula", "3a aula", "4a aula", "5a aula"]
 
