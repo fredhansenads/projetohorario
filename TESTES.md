@@ -23,6 +23,9 @@ node --check static\app.js
 - Carregamento e salvamento do estado.
 - Protecao de hashes e salts dos usuarios na resposta publica.
 - Login do administrador inicial.
+- Criacao de conta para outro usuario e login com a nova conta.
+- Bloqueio de senha inicial curta.
+- Protecao para manter pelo menos um administrador ativo.
 - Geracao completa da grade de exemplo sem conflitos obrigatorios.
 - Cenario sem disponibilidade suficiente, com pendencia detectada.
 - Conflito de turma no mesmo horario.

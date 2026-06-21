@@ -292,6 +292,31 @@ Cada linha representa:
 id; nome; periodos separados por virgula
 ```
 
+### 7.7 Contas de usuario
+
+Administradores podem criar contas para outros usuarios no modulo Cadastros, painel "Contas de usuario".
+
+Campos:
+
+- nome;
+- usuario de acesso;
+- perfil;
+- status ativo/inativo;
+- senha inicial.
+
+Perfis:
+
+- `admin`: pode cadastrar, gerar horarios, alterar aulas, criar backups e gerenciar contas.
+- `viewer`: pode consultar grades e relatorios.
+
+Regras de seguranca:
+
+- senha inicial obrigatoria ao criar conta;
+- senha com pelo menos 6 caracteres;
+- usuario duplicado nao e permitido;
+- hashes e salts nao sao enviados ao navegador;
+- o sistema deve manter pelo menos um administrador ativo.
+
 ## 8. Regras implementadas atualmente
 
 O sistema ja possui validacoes para:

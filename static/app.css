@@ -476,6 +476,16 @@ textarea {
   grid-column: 1 / -1;
 }
 
+.form-note {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fbfcfd;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

@@ -32,7 +32,15 @@ async function api(path, options = {}) {
     showLogin();
     throw new Error("Login necessario.");
   }
-  if (!response.ok) throw new Error(await response.text());
+  if (!response.ok) {
+    const text = await response.text();
+    try {
+      throw new Error(JSON.parse(text).message || text);
+    } catch (error) {
+      if (error instanceof SyntaxError) throw new Error(text);
+      throw error;
+    }
+  }
   return response.json();
 }
 
@@ -319,7 +327,8 @@ function usersPanel() {
   const users = sortByLabel(state.users || [], (user) => user.name || user.username || "");
   return `
     <div class="panel">
-      <div class="panel-head"><h3>Usuarios</h3><div class="actions"><span class="chip">${users.length}</span><button data-add-user>Adicionar</button></div></div>
+      <div class="panel-head"><h3>Contas de usuario</h3><div class="actions"><span class="chip">${users.length}</span><button data-add-user>Criar conta</button></div></div>
+      <p class="muted">Administradores alteram dados e geram horarios. Usuarios de consulta apenas visualizam e exportam relatorios.</p>
       <div class="list">
         ${users
           .map(
@@ -329,7 +338,7 @@ function usersPanel() {
               <div class="actions"><button data-edit-user="${user.id}">Editar</button><button data-delete-user="${user.id}">Remover</button></div>
             </div>`
           )
-          .join("") || emptyState("Nenhum usuario", "Adicione usuarios para separar acesso administrativo e consulta.")}
+          .join("") || emptyState("Nenhum usuario", "Crie contas para separar acesso administrativo e consulta.")}
       </div>
     </div>`;
 }
@@ -742,6 +751,10 @@ function textarea(name, label, value = "") {
   return `<label class="span-2">${label}<textarea name="${name}">${escapeHtml(value ?? "")}</textarea></label>`;
 }
 
+function formNote(text) {
+  return `<p class="form-note span-2">${text}</p>`;
+}
+
 function select(name, label, options, value = "") {
   return `<label>${label}<select name="${name}">${options
     .map((option) => `<option value="${option.value}" ${option.value === value ? "selected" : ""}>${option.label}</option>`)
@@ -899,8 +912,9 @@ function editCurriculum(row = null) {
 
 function editUser(user = {}) {
   openModal(
-    user.id ? "Editar usuario" : "Novo usuario",
+    user.id ? "Editar conta de usuario" : "Criar conta de usuario",
     [
+      formNote(user.id ? "Altere nome, perfil, status ou informe uma nova senha." : "Informe uma senha inicial com pelo menos 6 caracteres. Depois entregue o usuario e a senha ao responsavel."),
       input("name", "Nome", user.name || ""),
       input("username", "Usuario", user.username || ""),
       select("role", "Perfil", [{ value: "admin", label: "Administrador" }, { value: "viewer", label: "Consulta" }], user.role || "admin"),
@@ -908,11 +922,16 @@ function editUser(user = {}) {
       input("password", user.id ? "Nova senha (opcional)" : "Senha", "", "password"),
     ],
     async (data) => {
-      const payload = { ...user, ...data, active: data.active === "true" };
-      const response = await api("/api/users", { method: "POST", body: JSON.stringify(payload) });
-      state = response.data;
-      validation = response.validation;
-      render();
+      try {
+        const payload = { ...user, ...data, active: data.active === "true" };
+        const response = await api("/api/users", { method: "POST", body: JSON.stringify(payload) });
+        state = response.data;
+        validation = response.validation;
+        render();
+      } catch (error) {
+        alert(error.message || "Nao foi possivel salvar a conta.");
+        throw error;
+      }
     }
   );
 }

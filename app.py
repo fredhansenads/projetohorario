@@ -233,8 +233,8 @@ def make_user(username: str, name: str, password: str, role: str = "admin") -> d
     salt = secrets.token_hex(16)
     return {
         "id": new_id(),
-        "username": username,
-        "name": name,
+        "username": username.strip(),
+        "name": name.strip(),
         "role": role,
         "active": True,
         "salt": salt,
@@ -261,6 +261,10 @@ def public_db(db: dict) -> dict:
     data = deepcopy(db)
     data["users"] = [public_user(user) for user in db.get("users", [])]
     return data
+
+
+def has_active_admin(users: list[dict]) -> bool:
+    return any(user.get("role") == "admin" and user.get("active", True) for user in users)
 
 
 def verify_user(db: dict, username: str, password: str) -> dict | None:
@@ -874,8 +878,17 @@ class AppHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/users":
             incoming = body
+            incoming["username"] = str(incoming.get("username", "")).strip()
+            incoming["name"] = str(incoming.get("name", "")).strip()
+            incoming["role"] = incoming.get("role") if incoming.get("role") in ("admin", "viewer") else "viewer"
             if not incoming.get("username") or not incoming.get("name"):
                 self.json_response({"ok": False, "message": "Nome e usuario sao obrigatorios."}, status=400)
+                return
+            if not incoming.get("id") and len(str(incoming.get("password", ""))) < 6:
+                self.json_response({"ok": False, "message": "Senha inicial deve ter pelo menos 6 caracteres."}, status=400)
+                return
+            if incoming.get("password") and len(str(incoming.get("password", ""))) < 6:
+                self.json_response({"ok": False, "message": "Senha deve ter pelo menos 6 caracteres."}, status=400)
                 return
             users = db.get("users", [])
             existing = next((item for item in users if item.get("id") == incoming.get("id")), None)
@@ -884,15 +897,24 @@ class AppHandler(BaseHTTPRequestHandler):
                 self.json_response({"ok": False, "message": "Usuario ja existe."}, status=400)
                 return
             if existing:
-                existing["username"] = incoming.get("username")
-                existing["name"] = incoming.get("name")
-                existing["role"] = incoming.get("role", "admin")
-                existing["active"] = bool(incoming.get("active", True))
+                updated_users = deepcopy(users)
+                updated = next(item for item in updated_users if item.get("id") == existing.get("id"))
+                updated["username"] = incoming.get("username")
+                updated["name"] = incoming.get("name")
+                updated["role"] = incoming.get("role", "viewer")
+                updated["active"] = bool(incoming.get("active", True))
+                if not has_active_admin(updated_users):
+                    self.json_response({"ok": False, "message": "O sistema precisa manter pelo menos um administrador ativo."}, status=400)
+                    return
+                existing["username"] = updated["username"]
+                existing["name"] = updated["name"]
+                existing["role"] = updated["role"]
+                existing["active"] = updated["active"]
                 if incoming.get("password"):
                     existing["salt"] = secrets.token_hex(16)
                     existing["passwordHash"] = password_hash(incoming["password"], existing["salt"])
             else:
-                users.append(make_user(incoming["username"], incoming["name"], incoming.get("password") or "admin123", incoming.get("role", "admin")))
+                users.append(make_user(incoming["username"], incoming["name"], incoming["password"], incoming.get("role", "viewer")))
             db["users"] = users
             save_db(db)
             self.json_response({"ok": True, "data": public_db(db), "validation": validate_schedule(db), "users": [public_user(user) for user in users]})
@@ -989,6 +1011,9 @@ class AppHandler(BaseHTTPRequestHandler):
             remaining = [item for item in db.get("users", []) if item.get("id") != user_id]
             if not remaining:
                 self.json_response({"ok": False, "message": "O sistema precisa de pelo menos um usuario."}, status=400)
+                return
+            if not has_active_admin(remaining):
+                self.json_response({"ok": False, "message": "O sistema precisa manter pelo menos um administrador ativo."}, status=400)
                 return
             db["users"] = remaining
             save_db(db)

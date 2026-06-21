@@ -176,6 +176,48 @@ class HttpApiTests(TemporaryStorageTestCase):
         self.assertGreater(len(generated["data"]["lessons"]), 0)
         self.assertGreaterEqual(len(history["history"]), 1)
 
+    def test_admin_can_create_account_for_another_user(self) -> None:
+        token = self.login_token()
+        status, created = self.request(
+            "/api/users",
+            "POST",
+            token=token,
+            payload={"name": "Coordenacao", "username": "coord", "password": "coord123", "role": "viewer", "active": True},
+        )
+        login_status, login_payload = self.request("/api/login", "POST", payload={"username": "coord", "password": "coord123"})
+
+        self.assertEqual(200, status)
+        self.assertTrue(any(user["username"] == "coord" and user["role"] == "viewer" for user in created["users"]))
+        self.assertEqual(200, login_status)
+        self.assertEqual("coord", login_payload["user"]["username"])
+
+    def test_create_user_requires_safe_password(self) -> None:
+        token = self.login_token()
+        status, payload = self.request(
+            "/api/users",
+            "POST",
+            token=token,
+            payload={"name": "Teste", "username": "teste", "password": "123", "role": "viewer", "active": True},
+        )
+
+        self.assertEqual(400, status)
+        self.assertIn("Senha inicial", payload["message"])
+
+    def test_cannot_disable_last_active_admin(self) -> None:
+        token = self.login_token()
+        status_state, state_payload = self.request("/api/state", token=token)
+        admin = next(user for user in state_payload["data"]["users"] if user["username"] == "admin")
+        status, payload = self.request(
+            "/api/users",
+            "POST",
+            token=token,
+            payload={**admin, "active": False, "password": ""},
+        )
+
+        self.assertEqual(200, status_state)
+        self.assertEqual(400, status)
+        self.assertIn("administrador ativo", payload["message"])
+
 
 def lesson_from_row(db: dict, row: dict, room_id: str, day: str, period: str) -> dict:
     return {
