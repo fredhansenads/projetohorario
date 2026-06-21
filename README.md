@@ -8,6 +8,7 @@ A versao atual e um sistema funcional, sem dependencias externas, feito com Pyth
 
 - Documentacao oficial: `DOCUMENTACAO.md`
 - Controle das fases: `FASES.md`
+- Plano de testes: `TESTES.md`
 
 ## Como executar
 
@@ -57,10 +58,11 @@ Fases concluidas:
 - Fase 8: Login e seguranca.
 - Fase 9: Banco de dados real.
 - Fase 10: Interface profissional.
+- Fase 11: Testes e validacao.
 
 Proxima fase:
 
-- Fase 11: Testes e validacao.
+- Fase 12: Implantacao.
 
 Primeiro acesso:
 
@@ -73,5 +75,7 @@ Senha: admin123
 
 ```powershell
 python -m py_compile app.py
+python -m py_compile app.py tests\test_system.py
+python -m unittest discover -s tests -v
 node --check static\app.js
 ```

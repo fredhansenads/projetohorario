@@ -6,7 +6,7 @@ Nome do sistema: Sistema Web para Elaboracao Automatica de Horarios Escolares.
 
 Objetivo: apoiar direcao e coordenacao escolar na criacao, validacao, ajuste e impressao de horarios semanais de aulas, reduzindo conflitos entre professores, turmas, salas e cargas horarias.
 
-Versao atual: sistema funcional com Fases 1 a 10 concluidas.
+Versao atual: sistema funcional com Fases 1 a 11 concluidas.
 
 Repositorio: `https://github.com/fredhansenads/projetohorario`
 
@@ -26,10 +26,10 @@ Fases concluidas:
 - Fase 8: Login e seguranca.
 - Fase 9: Banco de dados real.
 - Fase 10: Interface profissional.
+- Fase 11: Testes e validacao.
 
 Fases planejadas:
 
-- Fase 11: Testes e validacao.
 - Fase 12: Implantacao.
 
 O roteiro completo esta em `FASES.md`.
@@ -107,6 +107,7 @@ Descricao:
 - `README.md`: resumo rapido do projeto.
 - `FASES.md`: memoria e roteiro de evolucao da Fase 1 a Fase 12.
 - `DOCUMENTACAO.md`: documentacao oficial do sistema.
+- `TESTES.md`: plano de testes automatizados e checklist manual.
 - `iniciar.bat`: atalho para iniciar o servidor no Windows.
 - `data/horario.sqlite3`: banco de dados principal criado automaticamente em tempo de uso.
 - `data/horario-db.json`: arquivo legado usado apenas para migracao automatica quando existir.
@@ -401,6 +402,8 @@ Comandos usados para validar a versao atual:
 
 ```powershell
 python -m py_compile app.py
+python -m py_compile app.py tests\test_system.py
+python -m unittest discover -s tests -v
 node --check static\app.js
 ```
 
@@ -415,6 +418,8 @@ Teste manual recomendado:
 7. Abrir relatorios.
 8. Testar buscas em cadastros, matriz, disponibilidade e grade.
 9. Reduzir a largura da janela e conferir se botoes, tabelas e formularios continuam legiveis.
+
+O checklist completo da coordenacao esta em `TESTES.md`.
 
 ## 13. Versionamento
 
@@ -436,6 +441,7 @@ Commits de referencia:
 - `8c5983d`: conclusao da Fase 8.
 - `70a9f58`: conclusao da Fase 9.
 - `161edc4`: conclusao da Fase 10.
+- A preencher: conclusao da Fase 11.
 - `03e8b7b`: roteiro completo das fases.
 
 ## 14. Limitacoes conhecidas
@@ -443,12 +449,10 @@ Commits de referencia:
 - Ainda nao ha PostgreSQL ou banco servidor; a versao atual usa SQLite local.
 - A exportacao PDF depende da impressao do navegador.
 - A exportacao Excel nativa ainda nao foi implementada; a versao atual oferece CSV.
-- A validacao automatizada ampla ainda sera reforcada na Fase 11.
+- A Fase 11 criou testes principais, mas cenarios reais maiores ainda devem ser acompanhados na implantacao.
 
 ## 15. Proximas fases
 
-Proxima fase de desenvolvimento: Fase 11 - Testes e validacao.
+Proxima fase de desenvolvimento: Fase 12 - Implantacao.
 
-Depois dela:
-
-- Fase 12: Implantacao.
+Depois dela: manutencao, acompanhamento do uso real e melhorias conforme necessidade da escola.

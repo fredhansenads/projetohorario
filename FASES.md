@@ -371,7 +371,7 @@ Commit de conclusao: `161edc4 Concluir fase 10 de interface profissional`.
 
 ## Fase 11 - Testes e validacao
 
-Status: pendente.
+Status: concluida.
 
 Objetivo: garantir confiabilidade do sistema antes do uso real.
 
@@ -389,6 +389,28 @@ Criterios de conclusao:
 - Principais fluxos passam em teste.
 - Erros conhecidos estao documentados ou corrigidos.
 - Sistema consegue lidar com dados reais de uma escola pequena.
+
+Entregas concluidas:
+
+- Suite automatizada com `unittest` em `tests/test_system.py`.
+- Testes isolados em banco SQLite temporario, sem alterar a base local de uso.
+- Teste de persistencia, carregamento e seguranca dos dados publicos.
+- Teste de login do administrador inicial.
+- Teste de geracao completa da grade de exemplo sem conflitos obrigatorios.
+- Teste de cenario sem disponibilidade suficiente, com pendencia detectada.
+- Testes de conflitos obrigatorios: turma duplicada, sala ocupada e sala incompativel.
+- Teste de carga horaria incompleta.
+- Teste de exportacao CSV.
+- Teste HTTP de API protegida, geracao e historico.
+- Plano de testes e checklist manual documentados em `TESTES.md`.
+
+Validacao da fase:
+
+- `python -m py_compile app.py tests\test_system.py`
+- `python -m unittest discover -s tests -v`
+- `node --check static\app.js`
+
+Commit de conclusao: a preencher apos commit final da fase.
 
 ## Fase 12 - Implantacao
 
